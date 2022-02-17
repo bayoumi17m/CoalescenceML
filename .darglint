@@ -1,0 +1,2 @@
+[darglint]
+message_template={msg_id}@{path}:{line}
