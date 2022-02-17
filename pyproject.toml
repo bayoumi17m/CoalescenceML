@@ -1,0 +1,181 @@
+[tool.poetry]
+name = "coalescenceml"
+version = "0.0.1"
+description = "An open-source MLOps framework to develop industry-grade production ML pipelines coalescing the MLOps stack under one umbrella."
+authors = ["Magd Bayoumi, Rafael Chaves, Elva Gao, Edward Gu, Sanjali Jha, Iris Li, Jerry Sun, Emily Wang, Chelsea Xiong"]
+license = "Apache License 2.0"
+packages = [
+    { include = "coalescenceml", from = "src" },
+]
+readme = "README.md"
+keywords = [
+    "mlops", "machine learning", "pipeline"
+]
+classifiers = [
+    "Typing :: Typed",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: Apache Software License",
+]
+exclude = [
+    "*.tests",
+    "*.tests.*",
+    "tests.*",
+    "tests",
+    "docs",
+    "examples"
+]
+include = [
+    "src/coalescenceml",
+    "*.txt",
+    "*.md",
+    "*.sh"
+]
+
+[tool.poetry.scripts]
+coml = "coalescenceml.cli.cli:cli"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.0.1"
+pytest-cov = "^3.0.0"
+pytest-mock = "^3.7.0"
+xdoctest = "^0.15.10"
+coverage = "^6.3.1"
+tox = "^3.24.5"
+flake8 = "^4.0.1"
+flake8-docstrings = "^1.6.0"
+darglint = "^1.8.1"
+black = "^22.1.0"
+isort = "^5.10.1"
+seed-isort-config = "^2.2.0"
+pre-commit = "^2.17.0"
+sphinx = "^4.4.0"
+interrogate = "^1.5.0"
+autoflake = "^1.4"
+hypothesis = "^6.36.2"
+typing-extensions = "^4.1.1"
+pytest-randomly = "^3.11.0"
+
+# mkdocs plus plugins
+mkdocs = "^1.2.3"
+mkdocs-material = "^8.1.11"
+mkdocs-awesome-pages-plugin = "^2.7.0"
+mkdocstrings = "^0.18.0"
+pydocstyle = "^6.1.1"
+mike = "^1.1.2"
+
+# mypy type stubs
+types-croniter = "^1.0.7"
+types-futures = "^3.3.8"
+types-Markdown = "^3.3.12"
+types-protobuf = "^3.19.12"
+types-PyMySQL = "^1.0.13"
+types-python-dateutil = "^2.8.9"
+types-python-slugify = "^5.0.3"
+types-PyYAML = "^6.0.4"
+types-setuptools = "^57.4.9"
+types-six = "^1.16.10"
+types-tabulate = "^0.8.5"
+types-termcolor = "^1.1.3"
+types-psutil = "^5.8.20"
+codespell = "^2.1.0"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
+
+[tool.tox]
+name = "CoML"
+authors = ["CDS"]
+legacy_tox_ini = """
+[tox]
+isolated_build = true
+skipsdist = true
+envlist = py38,py39
+
+[testenv]
+whitelist_externals = poetry
+commands = 
+    poetry intall -v --extras all
+    poetry run pytest tests
+    porety run bash scripts/mypy.sh --install-types
+"""
+
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "DEBUG"
+testpaths = "tests"
+xfail_strict = true
+
+[tool.coverage.run]
+parallel = true
+source = [
+    "src/coalescenceml"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    'if __name__ == "__main__":',
+    "if TYPE_CHECKING:",
+]
+
+[tool.isort]
+profile = "black"
+known_third_party = []
+skip_glob = []
+line_length = 80
+multi_line_output = 3
+lines_after_imports = 2
+force_grid_wrap = 0
+combine_as_imports = true
+include_trailing_comma = true
+
+[tool.mypy]
+strict = true
+namespace_packages = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = []
+ignore_missing_imports = true
+
+[tool.black]
+line-length = 80
+exclude = '''
+/(
+	\.git
+| \.hg
+| \.mypy_cache
+| \.tox
+| \.venv
+| _build
+| buck-out
+| build
+)/
+'''
+
+[tool.interrogate]
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = false
+ignore-semiprivate = false
+ignore-private = false
+ignore-property-decorators = false
+ignore-module = false
+ignore-nested-functions = false
+ignore-nested-classes = false
+ignore-setters = false
+fail-under = 95
+exclude = ["setup.py", "docs", "build"]
+ignore-regex = []
+verbose = 1
+quiet = false
+whitelist-regex = []
+color = true
+
