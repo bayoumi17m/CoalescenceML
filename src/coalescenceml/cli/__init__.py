@@ -14,4 +14,4 @@ Loading and using pre-built examples
 ------------------------------------
 """
 
-from coalescenceml.cli.version import * #noqa
+from coalescenceml.cli.version import *  # noqa

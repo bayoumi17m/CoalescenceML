@@ -1,13 +1,15 @@
 import click
 
 from coalescenceml import __version__
+
+
 # from coalesenceml.logger import set_root_verbosity
 
 
 @click.group()
 @click.version_option(__version__, "--version", "-v")
 def cli() -> None:
-    """CoML CLI"""
+    """Coalescence ML CLI."""
 
 
 if __name__ == "__main__":
