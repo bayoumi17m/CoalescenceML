@@ -3,7 +3,7 @@ set -e
 set -x
 
 SRC=${1:-"src/coalescenceml tests"}
-SRC_NO_TESTS=${1:-"src/coalesenceml"}
+SRC_NO_TESTS=${1:-"src/coalescenceml"}
 
 export COML_DEBUG=1
 
@@ -12,4 +12,4 @@ autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in
 isort $SRC scripts --check-only
 black $SRC  --check
 interrogate $SRC_NO_TESTS -c pyproject.toml
-mypy $SRC_NO_TESTS
+poetry run mypy $SRC_NO_TESTS
