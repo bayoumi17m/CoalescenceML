@@ -8,7 +8,7 @@ import click
 from dateutil import tz
 from tabulate import tabulate
 
-from coalesenceml.logger import get_logger
+from coalescenceml.logger import get_logger
 
 
 logger = get_logger(__name__)
@@ -37,7 +37,7 @@ def confirmation(text: str, *args: Any, **kwargs: Any) -> bool:
     return click.confirm(click.style(text, fg="yellow"), *args, **kwargs)
 
 
-def error(text: str) -> None
+def error(text: str) -> None:
     """Echo an error string on the CLI.
 
     Args:

@@ -1,6 +1,6 @@
 import click
 
-from coalesenceml import __version__
+from coalescenceml import __version__
 # from coalesenceml.logger import set_root_verbosity
 
 

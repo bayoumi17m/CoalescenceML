@@ -15,7 +15,7 @@ if [ -n "$1" ]; then
     coverage run -m pytest $TEST_SRC --color=yes
 else
     coverage run -m pytest tests/unit --color=yes
-    coverage run -m pytest tests/integration --color=yes
+    # coverage run -m pytest tests/integration --color=yes
 fi
 
 coverage combine
