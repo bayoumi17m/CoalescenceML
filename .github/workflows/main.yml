@@ -2,8 +2,9 @@ name: Test main
 
 # Cntrols when the action will run
 on:
-  pull_request:
-    types: [opened, synchronize]
+  push:
+    branch:
+      - main
 
 jobs:
   testing:
