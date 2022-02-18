@@ -5,7 +5,7 @@
 [![codecov](https://codecov.io/gh/bayoumi17m/CoalescenceML/branch/main/graph/badge.svg?token=7QNV6GV4B3)](https://codecov.io/gh/bayoumi17m/CoalescenceML)
 ![GitHub](https://img.shields.io/github/license/bayoumi17m/CoalescenceML)
 [![Interrogate](docs/interrogate.svg)](https://interrogate.readthedocs.io/en/latest/)
-![Main Workflow Tests](https://github.com/bayoumi17m/CoalescenceML/actions/workflows/pull_request.yml/badge.svg)
+![Main Workflow Tests](https://github.com/bayoumi17m/CoalescenceML/actions/workflows/main.yml/badge.svg)
 
 # 👀 What is Coalescence ML?
 
