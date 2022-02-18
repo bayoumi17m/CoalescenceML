@@ -70,6 +70,7 @@ pydocstyle = "^6.1.1"
 mike = "^1.1.2"
 
 # mypy type stubs
+mypy = "^0.931"
 types-croniter = "^1.0.7"
 types-futures = "^3.3.8"
 types-Markdown = "^3.3.12"
@@ -171,7 +172,7 @@ ignore-module = false
 ignore-nested-functions = false
 ignore-nested-classes = false
 ignore-setters = false
-fail-under = 95
+fail-under = 50
 exclude = ["setup.py", "docs", "build"]
 ignore-regex = []
 verbose = 1

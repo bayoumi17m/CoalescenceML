@@ -1,0 +1,22 @@
+fail_fast: true
+
+repos:
+  - repo: local
+    hooks:
+      - id: lint
+        name: lint
+        entry: poetry run bash scripts/lint.sh
+        language: system
+        files: ^src/coalescenceml/|^tests/
+        types: [file, python]
+        pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: poetry run bash scripts/test-coverage.sh unit
+        language: system
+        files: ^src/coalescenceml/|^tests/
+        types: [file, python]
+        pass_filenames: false
