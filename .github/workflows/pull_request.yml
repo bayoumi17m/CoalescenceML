@@ -35,7 +35,7 @@ jobs:
 
       - name: Fix windows bash
         if: ${{ matrix.os == 'windows-latest' }}
-        run: rx.exe "C:/WINDOWS/system32/bash.EXE"
+        run: rm.exe "C:/WINDOWS/system32/bash.EXE"
 
       - name: Set path to bash for example runner
         if: ${{ matrix.os == 'windows-latest' }}
