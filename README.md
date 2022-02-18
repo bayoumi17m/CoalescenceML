@@ -7,17 +7,19 @@
 [![Interrogate](docs/interrogate.svg)](https://interrogate.readthedocs.io/en/latest/)
 ![Main Workflow Tests](https://github.com/bayoumi17m/CoalescenceML/actions/workflows/main.yml/badge.svg)
 
-# 👀 What is Coalescence ML?
+# What is Coalescence ML?
 
-# 🤖 Why use Coalescence ML?
+# Why use Coalescence ML?
 
-# 📖 Learn More
+# Learn more about Coalescence ML
 
-# 🎮 Features
+## Learn more about MLOps
 
-# 🤸 Getting Started
+# Features
 
-## 💾 Install Coalescence ML
+# Getting Started
 
-## 🚅 Quickstart
+## Install Coalescence ML
+
+## Quickstart
 
