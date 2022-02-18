@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  testing:
+  main:
     runs-on: ${{ matrix.os }}
     env:
       COML_DEBUG: 1
