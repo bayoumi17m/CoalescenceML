@@ -46,4 +46,4 @@ jobs:
           PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
           PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         run: |
-          if [ true ]; then ./scripts/publish.sh; else exit 1; fi
+          bash scripts/publish.sh
