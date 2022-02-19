@@ -1,13 +1,14 @@
-name: Test main
+name: Publish
 
-# Cntrols when the action will run
+# Controls when the action will run
 on:
   push:
-    branches:
-      - 'main'
+    tags:
+      - '*'
 
 jobs:
-  main:
+  publish:
+    name: Build and publish Python 🐍 distributions 📦 to PyPI
     runs-on: ${{ matrix.os }}
     env:
       COML_DEBUG: 1
@@ -18,12 +19,13 @@ jobs:
 
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: [3.8, 3.9]
+        os: [ubuntu-latest]
+        python-version: [3.8]
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repo
+        uses: actions/checkout@v2
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -53,6 +55,8 @@ jobs:
       - name: Test
         run: python -m poetry run bash scripts/test-coverage.sh
 
-      - name: Upload coverage
-        if: ${{ matrix.python-version == '3.8' && matrix.os == 'ubuntu-latest' }}
-        uses: codecov/codecov-action@v2
+      - name: Publish
+        env: # Or as an environment variable
+          PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: python -m poetry run bash ./scripts/publish.sh
