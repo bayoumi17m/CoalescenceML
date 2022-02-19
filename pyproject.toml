@@ -102,9 +102,9 @@ envlist = py38,py39
 [testenv]
 whitelist_externals = poetry
 commands = 
-    poetry intall -v --extras all
+    poetry install -v
     poetry run pytest tests
-    porety run bash scripts/mypy.sh --install-types
+    poetry run bash scripts/mypy.sh
 """
 
 [tool.pytest.ini_options]
