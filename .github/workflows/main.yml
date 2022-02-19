@@ -3,8 +3,8 @@ name: Test main
 # Cntrols when the action will run
 on:
   push:
-    branch:
-      - main
+    branches:
+      - 'main'
 
 jobs:
   main:
