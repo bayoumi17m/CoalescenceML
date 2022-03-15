@@ -6,6 +6,7 @@ metadata:
     app: DEPLOYMENT_NAME
 spec:
   type: LoadBalancer
+  externalTrafficPolicy: Cluster
   selector:
     app: DEPLOYMENT_NAME
   ports:
