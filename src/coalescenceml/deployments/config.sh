@@ -1,5 +1,11 @@
-DEPLOYMENT_NAME="mlflow-deployment"
-IMAGE_NAME="us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model"
+#!/bin/bash
+
+# DEPLOYMENT_NAME="mlflow-deployment"
+# IMAGE_NAME="us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model"
+
+DEPLOYMENT_NAME=$1
+IMAGE_NAME=$2
+
 SERVICE_NAME=${DEPLOYMENT_NAME}-service
 
 # Edit deployment template
