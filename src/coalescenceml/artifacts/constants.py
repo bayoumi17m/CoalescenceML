@@ -1,0 +1,2 @@
+DATATYPE_PROPERTY_KEY = "datatype"
+PRODUCER_PROPERTY_KEY = "producer"

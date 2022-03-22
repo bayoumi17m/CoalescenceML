@@ -4,3 +4,4 @@ max-complexity = 15
 exclude = __init__.py, .git, __pycache__,docs,build,dist,.tox
 ignore = 
   D100
+  D107
