@@ -24,6 +24,7 @@ class KubernetesDeployer(BaseDeploymentStep):
         print("Pushing image to registry...", end="")
         push_command = ["docker", "push", self.registry_path]
         subprocess.run(push_command, stdout=self.docker_log)
+        self.docker_log.close()
         print("done")
 
     def config_deployment(self):
@@ -70,13 +71,15 @@ class KubernetesDeployer(BaseDeploymentStep):
         self.registry_path = registry_path
         self.deployment_name = "mlflow-deployment"
         self.service_name = self.deployment_name + "-service"
-        with open("docker.log", "w") as docker_log:
-            self.docker_log = docker_log
+        self.docker_log = open("docker.log", "w")
         self.build_model_image()
         self.push_image()
         self.config_deployment()
         self.deploy()
-        return self.get_service_url()
+        url = self.get_service_url()
+        while url == "http://<pending>":
+          url = self.get_service_url()
+        return url
 
 
 kd = KubernetesDeployer()
