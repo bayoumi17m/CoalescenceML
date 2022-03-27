@@ -1,9 +1,27 @@
 from basedeployer import BaseDeploymentStep
+from config import DeploymentYAMLConfig
+import json
 import subprocess
 
 
 class KubernetesDeployer(BaseDeploymentStep):
-    
+
+    def __del__(self):
+        self.deploy_log.close()
+
+    def run_cmd(self, cmd, start_msg, err_msg):
+        print(start_msg)
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, text=True)
+        self.deploy_log.write(proc.stdout)
+        if not self.suppress_stdout:
+            print(proc.stdout)
+        if proc.returncode != 0:
+            print("Error: {}. See log for more info.".format(err_msg))
+            self.deploy_log.write("Failed command: {}\n".format(proc.args))
+            exit(1)
+        print("done")
+
     # Change to custom Flask app instead of mlflow build-docker
     def build_model_image(self):
         """Builds a docker image that serves the model.
@@ -11,38 +29,36 @@ class KubernetesDeployer(BaseDeploymentStep):
         The user specifies the model through its uri, and the path to the
         container registry to build the image.
         """
-        build_command = ["mlflow", "models", "build-docker",
-                         "-m", self.model_uri, "-n", self.registry_path]
-        print("Building docker image...", end="")
-        subprocess.run(build_command, stdout=self.docker_log,
-                       stderr=self.docker_log)
-        print("done")
+        build_cmd = ["mlflow", "models", "build-docker",
+                     "-m", self.model_uri, "-n", self.registry_path]
+        self.run_cmd(build_cmd, "Building docker image...",
+                     "Failed to build docker image")
 
     # Not sure if this step is actually needed
     def push_image(self):
         """Pushes the docker image to the provided registry path."""
-        print("Pushing image to registry...", end="")
-        push_command = ["docker", "push", self.registry_path]
-        subprocess.run(push_command, stdout=self.docker_log)
-        self.docker_log.close()
-        print("done")
+        self.run_cmd(
+            ["docker", "push", self.registry_path],
+            "Pushing image to registry...",
+            "Failed to push image"
+        )
 
     def config_deployment(self):
         """Configures the deployment.yaml and service.yaml files for deployment."""
         print("Configuring deployment...", end="")
-        config_command = ["./config.sh",
-                          self.deployment_name, self.registry_path]
-        subprocess.run(config_command)
+        config = DeploymentYAMLConfig(self.deployment_name, self.registry_path)
+        config.create_deployment_yaml()
+        config.create_service_yaml()
         print("done")
 
     def deploy(self):
-        """Deploys the model."""
-        print("Deploying...", end="")
-        deploy_command = ["kubectl", "apply", "-f", "deployment.yaml"]
-        service_command = ["kubectl", "apply", "-f", "service.yaml"]
-        subprocess.run(deploy_command)
-        subprocess.run(service_command)
-        print("done")
+        """Applies the deployment and service yamls."""
+        deploy_cmd = ["kubectl", "apply", "-f", "deployment.yaml"]
+        service_cmd = ["kubectl", "apply", "-f", "service.yaml"]
+        self.run_cmd(deploy_cmd, "Creating deployment...",
+                     "Failed to create deployment")
+        self.run_cmd(service_cmd, "Creating LoadBalancer service...",
+                     "Failed to create LoadBalancer service")
 
     def get_service_url(self):
         """Get service URL.
@@ -50,35 +66,31 @@ class KubernetesDeployer(BaseDeploymentStep):
         Searches kubectl for the service name and returns its external IP,
         if any.
         """
-        p1 = subprocess.Popen(
-            ["kubectl", "get", "services"], stdout=subprocess.PIPE)
-        p2 = subprocess.Popen(["grep", self.service_name],
-                              stdin=p1.stdout, stdout=subprocess.PIPE)
-        p1.stdout.close()
-        p3 = subprocess.Popen(["awk", "{print $4}"],
-                              stdin=p2.stdout, stdout=subprocess.PIPE)
-        p2.stdout.close()
-        ip = p3.communicate()[0].strip().decode("utf-8")
+        p = subprocess.run(["kubectl", "get", "service",
+                           self.service_name, "--output=json"], capture_output=True)
+        service_json = json.loads(p.stdout)
+        ip = service_json["status"]["loadBalancer"]["ingress"][0]["ip"]
         if ip is None or ip == "":
             print("Error: could not find IP")
             return None
+        elif ip == "<pending>":
+            print("Ingress IP is currently pending, please try again later.")
         return "http://{}".format(ip)
 
-    def entry_point(self, model_uri, registry_path, deploy):
+    def entry_point(self, model_uri, registry_path, deploy, suppress_stdout=True):
         if not deploy:
             return None
         self.model_uri = model_uri
         self.registry_path = registry_path
         self.deployment_name = "mlflow-deployment"
         self.service_name = self.deployment_name + "-service"
-        self.docker_log = open("docker.log", "w")
+        self.suppress_stdout = suppress_stdout
+        self.deploy_log = open("kubedeploy.log", "w")
         self.build_model_image()
         self.push_image()
         self.config_deployment()
         self.deploy()
         url = self.get_service_url()
-        while url == "http://<pending>":
-          url = self.get_service_url()
         return url
 
 
