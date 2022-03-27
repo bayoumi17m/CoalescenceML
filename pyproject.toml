@@ -39,6 +39,7 @@ coml = "coalescenceml.cli.cli:cli"
 
 [tool.poetry.dependencies]
 python = "^3.8"
+evidently = "^0.1.47-alpha.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0.1"
