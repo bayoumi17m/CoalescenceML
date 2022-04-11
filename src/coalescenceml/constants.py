@@ -14,10 +14,13 @@ def process_bool_env_var(var: str, default: bool = False) -> bool:
     else:
         return default
 
-
+# Global
 APP_NAME = "CoalescenceML"
+
+# Env variables
 ENV_COML_DEBUG = "COML_DEBUG"
 ENV_COML_LOGGING_VERBOSITY = "COML_LOGGING_VERBOSITY"
+ENV_COML_CONFIG_PATH = "COML_CONFIG_PATH"
 
 # Logging variables
 IS_DEBUG_ENV: bool = handle_bool_env_var(ENV_COML_DEBUG, default=False)
@@ -34,3 +37,5 @@ else:
         ENV_COML_LOGGING_VERBOSITY,
         default="INFO"
     ).upper()
+
+REMOTE_FS_PREFIX = ["gs://", "s3://", "az://"]
