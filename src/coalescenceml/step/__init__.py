@@ -1,3 +1,10 @@
+"""
+A step is a single piece or stage of an ML Pipeline. Each step is essentilly
+a node of a Directed Acyclic Graph (or DAG). 
+
+Steps can be subclassed from the `BaseStep` class, or used via our `@step` decorator.
+"""
+
 from coalescenceml.steps.base_step import BaseStep
 from coalescenceml.steps.base_step_config import BaseStepConfig
 from coalescenceml.steps.step_context import StepContext
