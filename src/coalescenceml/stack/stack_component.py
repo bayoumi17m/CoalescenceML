@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, root_validator
 
-from coalescenceml.enums import StackComponentType
+from coalescenceml.enums import StackComponentFlavor
 from coalescenceml.stack.exceptions import StackComponentInterfaceError
 from coalescenceml.integrations.utils import get_requirements_for_module
 
@@ -26,7 +26,7 @@ class StackComponent(BaseModel, ABC):
     uuid: UUID = Field(default_factory=uuid4)
 
     # Class Configuration
-    TYPE: ClassVar[StackComponentType]
+    TYPE: ClassVar[StackComponentFlavor]
     FLAVOR: ClassVar[str]
 
     @property
@@ -139,8 +139,8 @@ class StackComponent(BaseModel, ABC):
     @root_validator
     def _ensure_stack_component_complete(cls, values: Dict[str, Any]) -> Any:
         try:
-            stack_component_type = getattr(cls, "TYPE")
-            assert stack_component_type in StackComponentType
+            stack_component_flavor = getattr(cls, "TYPE")
+            assert stack_component_flavor in StackComponentFlavor
         except (AttributeError, AssertionError):
             raise StackComponentInterfaceError(
                 textwrap.dedent(
@@ -148,7 +148,7 @@ class StackComponent(BaseModel, ABC):
                     When you are working with any classes which subclass from
                     `coalescenceml.stack.StackComponent` please make sure that your
                     class has a ClassVar named `TYPE` and its value is set to a
-                    `StackComponentType` from `from coalescenceml.enums import StackComponentType`.
+                    `StackComponentFlavor` from `from coalescenceml.enums import StackComponentFlavor`.
 
                     In most of the cases, this is already done for you within the
                     implementation of the base concept.
@@ -160,7 +160,7 @@ class StackComponent(BaseModel, ABC):
                         path: str
 
                         # Class Variables
-                        TYPE: ClassVar[StackComponentType] = StackComponentType.ARTIFACT_STORE
+                        TYPE: ClassVar[StackComponentFlavor] = StackComponentFlavor.ARTIFACT_STORE
                     """
                 )
             )

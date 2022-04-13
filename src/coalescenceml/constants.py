@@ -1,5 +1,18 @@
 import os
+from rich.console import Console
+from rich.theme import Theme
 
+coml_custom_theme = Theme(
+    {
+        "info": "dim cyan",
+        "warning": "magenta",
+        "danger": "bold red"
+        "error": "red",
+        "title": "bold cyan underline"
+    }
+)
+
+console = Console(theme=coml_custom_theme, markup=True)
 
 def process_bool_env_var(var: str, default: bool = False) -> bool:
     """process_bool_env_car converts env var to boolean.
@@ -51,5 +64,5 @@ SHOULD_PREVENT_PIPELINE_EXECUTION = handle_bool_env_var(
 )
 
 # DIRECTORY and local store directory paths:
-DIRECTORY_DIRECTORY_NAME = ".coml"
+DIRECTORY_DIRECTORY_NAME = ".coalescence"
 LOCAL_STORES_DIRECTORY_NAME = "local_stores"

@@ -72,6 +72,7 @@ def get_logging_level() -> LoggingLevels:
 
 def get_console_handler() -> Any:
     """Get console handler for logging"""
+    from coalescenceml.constants import console
     console_handler = RichHandler(
         show_path=False, omit_repeated_times=False, console, rich_tracebacks=True
     )

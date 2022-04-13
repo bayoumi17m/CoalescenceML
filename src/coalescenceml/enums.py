@@ -51,4 +51,4 @@ class MetadataContextFlavor(DictEnum):
     """All possible types that contexts can have within pipeline nodes"""
 
     STACK = "stack"
-    PIPELINE_REQUIREMENTS = "pipeline_requireme
+    PIPELINE_REQUIREMENTS = "pipeline_requirements"

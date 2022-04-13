@@ -201,7 +201,6 @@ class BaseStep(metaclass=BaseStepMeta):
             `StepContext` object during execution.
     """
 
-    # TODO [ENG-156]: Ensure these are ordered
     INPUT_SIGNATURE: ClassVar[Dict[str, Type[Any]]] = None  # type: ignore[assignment] # noqa
     OUTPUT_SIGNATURE: ClassVar[Dict[str, Type[Any]]] = None  # type: ignore[assignment] # noqa
     CONFIG_PARAMETER_NAME: ClassVar[Optional[str]] = None
@@ -558,7 +557,8 @@ class BaseStep(metaclass=BaseStepMeta):
 
         return combined_artifacts
 
-    # TODO [ENG-157]: replaces Channels with coalescenceml class (BaseArtifact?)
+    # TODO: replaces Channels with coalescenceml class (BaseArtifact)
+    # For now we do this for ease with TFX
     def __call__(
         self, *artifacts: Channel, **kw_artifacts: Channel
     ) -> Union[Channel, List[Channel]]:

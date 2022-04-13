@@ -14,7 +14,7 @@ from coalescenceml.config.base_config import BaseConfiguration
 from coalescenceml.config.global_config import GlobalConfiguration
 from coalescenceml.config.profile_config import ProfileConfiguration
 from coalescenceml.constants import ENV_coalescenceml_DIRECTORY_PATH, DIRECTORY_DIRECTORY_NAME
-from coalescenceml.enums import StackComponentType, StoreType
+from coalescenceml.enums import StackComponentFlavor, StoreType
 from coalescenceml.environment import Environment
 from coalescenceml.exceptions import (
     ForbiddenDirectoryAccessError,
@@ -186,6 +186,15 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
                 value.
         """
         cls._global_directory = repo
+    
+    def get_active_root(self) -> str:
+        """Get the currently active path set at the directory root."""
+        if not self._root:
+            logger.info("Running without an active directory root.")
+            # TODO: Raise error?
+        else:
+            logger.debug("Using directory root %s.", self._root)
+            return self._root
 
     def _set_active_root(self, root: Optional[Path] = None) -> None:
         """Set the supplied path as the directory root.
@@ -332,80 +341,10 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
 
         self._write_config()
 
-    @staticmethod
-    def _migrate_legacy_directory(
-        config_file: str,
-    ) -> Optional[ProfileConfiguration]:
-        """Migrate a legacy directory configuration to the new format and
-        create a new Profile out of it.
-        Args:
-            config_file: Path to the legacy directory configuration file.
-        Returns:
-            The new Profile instance created for the legacy directory or None
-            if a legacy directory configuration was not found at the supplied
-            path.
-        """
-        from COml.console import console
-
-        if not fileio.exists(config_file):
-            return None
-
-        config_dict = yaml_utils.read_yaml(config_file)
-
-        try:
-            legacy_config = LegacyDirectoryConfig.parse_obj(config_dict)
-        except ValidationError:
-            # legacy configuration not detected
-            return None
-
-        config_path = str(Path(config_file).parent)
-        profile_name = f"legacy-directory-{random.getrandbits(32):08x}"
-
-        # a legacy directory configuration was detected
-        console.print(
-            f"A legacy COML directory with locally configured stacks was "
-            f"found at '{config_path}'.\n"
-            f"Beginning with COML 0.7.0, stacks are no longer stored inside "
-            f"the COML directory root, they are stored globally using the "
-            f"newly introduced concept of Profiles.\n\n"
-            f"The stacks configured in this directory will be automatically "
-            f"migrated to a newly created profile: '{profile_name}'.\n\n"
-            f"If you no longer need to use the stacks configured in this "
-            f"directory, please delete the profile using the following "
-            f"command:\n\n"
-            f"'COml profile delete {profile_name}'\n\n"
-            f"More information about Profiles can be found at "
-            f"https://docs.COml.io.\n"
-            f"This warning will not be shown again for this Directory."
-        )
-
-        stack_data = legacy_config.get_stack_data()
-        store = LocalStackStore()
-        store.initialize(url=config_path, stack_data=stack_data)
-        store._write_store()
-        profile = ProfileConfiguration(
-            name=profile_name,
-            store_url=store.url,
-            active_stack=legacy_config.active_stack_name,
-        )
-
-        new_config = DirectoryConfiguration(
-            active_profile_name=profile.name,
-            active_stack_name=legacy_config.active_stack_name,
-        )
-        new_config_dict = json.loads(new_config.json())
-        yaml_utils.write_yaml(config_file, new_config_dict)
-        GlobalConfiguration().add_or_update_profile(profile)
-
-        return profile
-
     def _load_config(self) -> Optional[DirectoryConfiguration]:
         """Loads the directory configuration from disk, if the directory has
         an active root and the configuration file exists. If the configuration
         file doesn't exist, an empty configuration is returned.
-        If a legacy directory configuration is found in the directory root,
-        it is migrated to the new configuration format and a new profile is
-        automatically created out of it and activated for the directory root.
         If the directory doesn't have an active root, no directory
         configuration is used and the active profile configuration takes
         precedence.
@@ -424,10 +363,6 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
             logger.debug(
                 f"Loading directory configuration from {config_path}."
             )
-
-            # detect an old style directory configuration and migrate it to
-            # the new format and create a profile out of it if necessary
-            self._migrate_legacy_directory(config_path)
 
             config_dict = yaml_utils.read_yaml(config_path)
             config = DirectoryConfiguration.parse_obj(config_dict)
@@ -630,7 +565,7 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
         return [self._stack_from_wrapper(s) for s in self.stack_store.stacks]
 
     @property
-    def stack_configurations(self) -> Dict[str, Dict[StackComponentType, str]]:
+    def stack_configurations(self) -> Dict[str, Dict[StackComponentFlavor, str]]:
         """Configuration dicts for all stacks registered in this directory.
         This property is intended as a quick way to get information about the
         components of the registered stacks without loading all installed
@@ -744,31 +679,31 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
             )
 
     def get_stack_components(
-        self, component_type: StackComponentType
+        self, component_flavor: StackComponentFlavor
     ) -> List[StackComponent]:
         """Fetches all registered stack components of the given type."""
         return [
             self._component_from_wrapper(c)
-            for c in self.stack_store.get_stack_components(component_type)
+            for c in self.stack_store.get_stack_components(component_flavor)
         ]
 
     def get_stack_component(
-        self, component_type: StackComponentType, name: str
+        self, component_flavor: StackComponentFlavor, name: str
     ) -> StackComponent:
         """Fetches a registered stack component.
         Args:
-            component_type: The type of the component to fetch.
+            component_flavor: The type of the component to fetch.
             name: The name of the component to fetch.
         Raises:
             KeyError: If no stack component exists for the given type and name.
         """
         logger.debug(
             "Fetching stack component of type '%s' with name '%s'.",
-            component_type.value,
+            component_flavor.value,
             name,
         )
         return self._component_from_wrapper(
-            self.stack_store.get_stack_component(component_type, name=name)
+            self.stack_store.get_stack_component(component_flavor, name=name)
         )
 
     def register_stack_component(
@@ -791,27 +726,27 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
         }
 
     def deregister_stack_component(
-        self, component_type: StackComponentType, name: str
+        self, component_flavor: StackComponentFlavor, name: str
     ) -> None:
         """Deregisters a stack component.
         Args:
-            component_type: The type of the component to deregister.
+            component_flavor: The type of the component to deregister.
             name: The name of the component to deregister.
         """
         try:
             self.stack_store.deregister_stack_component(
-                component_type, name=name
+                component_flavor, name=name
             )
             logger.info(
                 "Deregistered stack component (type: %s) with name '%s'.",
-                component_type.value,
+                component_flavor.value,
                 name,
             )
         except KeyError:
             logger.warning(
                 "Unable to deregister stack component (type: %s) with name "
                 "'%s': No stack component with this name could be found.",
-                component_type.value,
+                component_flavor.value,
                 name,
             )
 
@@ -899,8 +834,8 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
             # parent directories
             search_parent_directories = False
             warning_message = (
-                f"Unable to find COML directory at path '{path}'. Make sure "
-                f"to create a COML directory by calling `COml init` when "
+                f"Unable to find CoalescenceML directory at path '{path}'. Make sure "
+                f"to create a CoalescenceML directory by calling `coml init` when "
                 f"specifying an explicit directory path in code or via the "
                 f"environment variable '{ENV_COML_DIRECTORY_PATH}'."
             )
@@ -946,7 +881,7 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
         )
 
         component_class = StackComponentClassRegistry.get_class(
-            component_type=wrapper.type, component_flavor=wrapper.flavor
+            component_flavor=wrapper.type, component_flavor=wrapper.flavor
         )
         component_config = yaml.safe_load(
             base64.b64decode(wrapper.config).decode()
@@ -957,9 +892,9 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
         """Instantiate a Stack from the serializable Wrapper."""
         stack_components = {}
         for component_wrapper in wrapper.components:
-            component_type = component_wrapper.type
+            component_flavor = component_wrapper.type
             component = self._component_from_wrapper(component_wrapper)
-            stack_components[component_type] = component
+            stack_components[component_flavor] = component
 
         return Stack.from_components(
             name=wrapper.name, components=stack_components

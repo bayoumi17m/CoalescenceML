@@ -1,6 +1,6 @@
 from typing import AbstractSet, Callable, Optional
 
-from coalescenceml.enums import StackComponentType
+from coalescenceml.enums import StackComponentFlavor
 from coalescenceml.stack.exceptions import StackValidationError
 from coalescenceml.logger import get_logger
 
@@ -21,7 +21,7 @@ class StackValidator:
 
     def __init__(
         self,
-        required_components: Optional[AbstractSet[StackComponentType]] = None,
+        required_components: Optional[AbstractSet[StackComponentFlavor]] = None,
         custom_validation_function: Optional[Callable[[Stack], bool]] = None,
     ):
         """Initializes a `StackValidator` instance.

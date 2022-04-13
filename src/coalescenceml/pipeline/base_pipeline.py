@@ -332,8 +332,8 @@ class BasePipeline(metaclass=BasePipelineMeta):
         stack = Directory().active_stack
 
         stack_metadata = {
-            component_type.value: component.FLAVOR
-            for component_type, component in stack.components.items()
+            component_flavor.value: component.FLAVOR
+            for component_flavor, component in stack.components.items()
         }
 
         self._reset_step_flags()

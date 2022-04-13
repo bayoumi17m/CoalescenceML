@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-from coalescenceml.enums import StackComponentType, StoreType
+from coalescenceml.enums import StackComponentFlavor, StoreType
 from coalescenceml.stack.exceptions import StackComponentExistsError, StackExistsError
 from coalescenceml.logger import get_logger
 from coalescenceml.stack import Stack
@@ -95,22 +95,22 @@ class BaseStackStore(ABC):
     @abstractmethod
     def get_stack_configuration(
         self, name: str
-    ) -> Dict[StackComponentType, str]:
+    ) -> Dict[StackComponentFlavor, str]:
         """Fetches a stack configuration by name.
         Args:
             name: The name of the stack to fetch.
         Returns:
-            Dict[StackComponentType, str] for the requested stack name.
+            Dict[StackComponentFlavor, str] for the requested stack name.
         Raises:
             KeyError: If no stack exists for the given name.
         """
 
     @property
     @abstractmethod
-    def stack_configurations(self) -> Dict[str, Dict[StackComponentType, str]]:
+    def stack_configurations(self) -> Dict[str, Dict[StackComponentFlavor, str]]:
         """Configurations for all stacks registered in this stack store.
         Returns:
-            Dictionary mapping stack names to Dict[StackComponentType, str]'s
+            Dictionary mapping stack names to Dict[StackComponentFlavor, str]'s
         """
 
     @abstractmethod
@@ -139,21 +139,21 @@ class BaseStackStore(ABC):
 
     @abstractmethod
     def _create_stack(
-        self, name: str, stack_configuration: Dict[StackComponentType, str]
+        self, name: str, stack_configuration: Dict[StackComponentFlavor, str]
     ) -> None:
         """Add a stack to storage.
         Args:
             name: The name to save the stack as.
-            stack_configuration: Dict[StackComponentType, str] to persist.
+            stack_configuration: Dict[StackComponentFlavor, str] to persist.
         """
 
     @abstractmethod
     def _get_component_flavor_and_config(
-        self, component_type: StackComponentType, name: str
+        self, component_flavor: StackComponentFlavor, name: str
     ) -> Tuple[str, bytes]:
         """Fetch the flavor and configuration for a stack component.
         Args:
-            component_type: The type of the component to fetch.
+            component_flavor: The type of the component to fetch.
             name: The name of the component to fetch.
         Returns:
             Pair of (flavor, configuration) for stack component, as string and
@@ -164,22 +164,22 @@ class BaseStackStore(ABC):
 
     @abstractmethod
     def _get_stack_component_names(
-        self, component_type: StackComponentType
+        self, component_flavor: StackComponentFlavor
     ) -> List[str]:
         """Get names of all registered stack components of a given type.
         Args:
-            component_type: The type of the component to list names for.
+            component_flavor: The type of the component to list names for.
         Returns:
             A list of names as strings.
         """
 
     @abstractmethod
     def _delete_stack_component(
-        self, component_type: StackComponentType, name: str
+        self, component_flavor: StackComponentFlavor, name: str
     ) -> None:
         """Remove a StackComponent from storage.
         Args:
-            component_type: The type of component to delete.
+            component_flavor: The type of component to delete.
             name: Then name of the component to delete.
         Raises:
             KeyError: If no component exists for given type and name.
@@ -232,7 +232,7 @@ class BaseStackStore(ABC):
 
         def __check_component(
             component: StackComponentWrapper,
-        ) -> Tuple[StackComponentType, str]:
+        ) -> Tuple[StackComponentFlavor, str]:
             """Try to register a stack component, if it doesn't exist.
             Args:
                 component: StackComponentWrapper to register.
@@ -243,7 +243,7 @@ class BaseStackStore(ABC):
             """
             try:
                 existing_component = self.get_stack_component(
-                    component_type=component.type, name=component.name
+                    component_flavor=component.type, name=component.name
                 )
                 if existing_component.uuid != component.uuid:
                     raise StackComponentExistsError(
@@ -263,18 +263,18 @@ class BaseStackStore(ABC):
         return metadata
 
     def get_stack_component(
-        self, component_type: StackComponentType, name: str
+        self, component_flavor: StackComponentFlavor, name: str
     ) -> StackComponentWrapper:
         """Get a registered stack component.
         Raises:
             KeyError: If no component with the requested type and name exists.
         """
         flavor, config = self._get_component_flavor_and_config(
-            component_type, name=name
+            component_flavor, name=name
         )
         uuid = yaml.safe_load(base64.b64decode(config).decode())["uuid"]
         return StackComponentWrapper(
-            type=component_type,
+            type=component_flavor,
             flavor=flavor,
             name=name,
             uuid=uuid,
@@ -282,38 +282,38 @@ class BaseStackStore(ABC):
         )
 
     def get_stack_components(
-        self, component_type: StackComponentType
+        self, component_flavor: StackComponentFlavor
     ) -> List[StackComponentWrapper]:
         """Fetches all registered stack components of the given type.
         Args:
-            component_type: StackComponentType to list members of
+            component_flavor: StackComponentFlavor to list members of
         Returns:
             A list of StackComponentConfiguration instances.
         """
         return [
-            self.get_stack_component(component_type=component_type, name=name)
-            for name in self._get_stack_component_names(component_type)
+            self.get_stack_component(component_flavor=component_flavor, name=name)
+            for name in self._get_stack_component_names(component_flavor)
         ]
 
     def deregister_stack_component(
-        self, component_type: StackComponentType, name: str
+        self, component_flavor: StackComponentFlavor, name: str
     ) -> None:
         """Deregisters a stack component.
         Args:
-            component_type: The type of the component to deregister.
+            component_flavor: The type of the component to deregister.
             name: The name of the component to deregister.
         Raises:
             ValueError: if trying to deregister a component that's part
                 of a stack.
         """
         for stack_name, stack_config in self.stack_configurations.items():
-            if stack_config.get(component_type) == name:
+            if stack_config.get(component_flavor) == name:
                 raise ValueError(
                     f"Unable to deregister stack component (type: "
-                    f"{component_type}, name: {name}) that is part of a "
+                    f"{component_flavor}, name: {name}) that is part of a "
                     f"registered stack (stack name: '{stack_name}')."
                 )
-        self._delete_stack_component(component_type, name=name)
+        self._delete_stack_component(component_flavor, name=name)
 
     def register_default_stack(self) -> None:
         """Populates the store with the default Stack.
@@ -328,13 +328,13 @@ class BaseStackStore(ABC):
     # Common code (internal implementations, private):
 
     def _stack_from_dict(
-        self, name: str, stack_configuration: Dict[StackComponentType, str]
+        self, name: str, stack_configuration: Dict[StackComponentFlavor, str]
     ) -> StackWrapper:
         """Build a StackWrapper from stored configurations"""
         stack_components = [
             self.get_stack_component(
-                component_type=component_type, name=component_name
+                component_flavor=component_flavor, name=component_name
             )
-            for component_type, component_name in stack_configuration.items()
+            for component_flavor, component_name in stack_configuration.items()
         ]
         return StackWrapper(name=name, components=stack_components)

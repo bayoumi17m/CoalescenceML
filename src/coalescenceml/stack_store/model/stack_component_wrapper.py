@@ -5,14 +5,14 @@ from uuid import UUID
 import yaml
 from pydantic import BaseModel
 
-from coalescenceml.enums import StackComponentType
+from coalescenceml.enums import StackComponentFlavor
 from coalescenceml.stack import StackComponent
 
 
 class StackComponentWrapper(BaseModel):
     """Serializable Configuration of a StackComponent"""
 
-    type: StackComponentType
+    type: StackComponentFlavor
     flavor: str  # due to subclassing, can't properly use enum type here
     name: str
     uuid: UUID

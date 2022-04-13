@@ -6,7 +6,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError, NoResultFound
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
-from coalescenceml.enums import StackComponentType, StoreType
+from coalescenceml.enums import StackComponentFlavor, StoreType
 from coalescenceml.exceptions import StackComponentExistsError
 from coalescenceml.io import utils
 from coalescenceml.logger import get_logger
@@ -28,7 +28,7 @@ class CoalescenceStack(SQLModel, table=True):
 
 
 class CoalescenceStackComponent(SQLModel, table=True):
-    component_type: StackComponentType = Field(primary_key=True)
+    component_flavor: StackComponentFlavor = Field(primary_key=True)
     name: str = Field(primary_key=True)
     component_flavor: str
     configuration: bytes  # e.g. base64 encoded json string
@@ -38,8 +38,8 @@ class CoalescenceStackDefinition(SQLModel, table=True):
     """Join table between Stacks and StackComponents"""
 
     stack_name: str = Field(primary_key=True, foreign_key="coalescencestack.name")
-    component_type: StackComponentType = Field(
-        primary_key=True, foreign_key="coalescencestackcomponent.component_type"
+    component_flavor: StackComponentFlavor = Field(
+        primary_key=True, foreign_key="coalescencestackcomponent.component_flavor"
     )
     component_name: str = Field(
         primary_key=True, foreign_key="coalescencestackcomponent.name"
@@ -147,14 +147,14 @@ class SqlStackStore(BaseStackStore):
 
     def get_stack_configuration(
         self, name: str
-    ) -> Dict[StackComponentType, str]:
+    ) -> Dict[StackComponentFlavor, str]:
         """Fetches a stack configuration by name.
 
         Args:
             name: The name of the stack to fetch.
 
         Returns:
-            Dict[StackComponentType, str] for the requested stack name.
+            Dict[StackComponentFlavor, str] for the requested stack name.
 
         Raises:
             KeyError: If no stack exists for the given name.
@@ -175,8 +175,8 @@ class SqlStackStore(BaseStackStore):
             definitions_and_components = session.exec(
                 select(CoalescenceStackDefinition, CoalescenceStackComponent)
                 .where(
-                    CoalescenceStackDefinition.component_type
-                    == CoalescenceStackComponent.component_type
+                    CoalescenceStackDefinition.component_flavor
+                    == CoalescenceStackComponent.component_flavor
                 )
                 .where(
                     CoalescenceStackDefinition.component_name == CoalescenceStackComponent.name
@@ -184,17 +184,17 @@ class SqlStackStore(BaseStackStore):
                 .where(CoalescenceStackDefinition.stack_name == name)
             )
             params = {
-                component.component_type: component.name
+                component.component_flavor: component.name
                 for _, component in definitions_and_components
             }
-        return {StackComponentType(typ): name for typ, name in params.items()}
+        return {StackComponentFlavor(typ): name for typ, name in params.items()}
 
     @property
-    def stack_configurations(self) -> Dict[str, Dict[StackComponentType, str]]:
+    def stack_configurations(self) -> Dict[str, Dict[StackComponentFlavor, str]]:
         """Configuration for all stacks registered in this stack store.
 
         Returns:
-            Dictionary mapping stack names to Dict[StackComponentType, str]
+            Dictionary mapping stack names to Dict[StackComponentFlavor, str]
         """
         return {n: self.get_stack_configuration(n) for n in self.stack_names}
 
@@ -215,7 +215,7 @@ class SqlStackStore(BaseStackStore):
             existing_component = session.exec(
                 select(CoalescenceStackComponent)
                 .where(CoalescenceStackComponent.name == component.name)
-                .where(CoalescenceStackComponent.component_type == component.type)
+                .where(CoalescenceStackComponent.component_flavor == component.type)
             ).first()
             if existing_component is not None:
                 raise StackComponentExistsError(
@@ -224,7 +224,7 @@ class SqlStackStore(BaseStackStore):
                     f"existing stack component with this name."
                 )
             new_component = CoalescenceStackComponent(
-                component_type=component.type,
+                component_flavor=component.type,
                 name=component.name,
                 component_flavor=component.flavor,
                 configuration=component.config,
@@ -261,13 +261,13 @@ class SqlStackStore(BaseStackStore):
     # Private interface implementations:
 
     def _create_stack(
-        self, name: str, stack_configuration: Dict[StackComponentType, str]
+        self, name: str, stack_configuration: Dict[StackComponentFlavor, str]
     ) -> None:
         """Add a stack to storage.
 
         Args:
             name: The name to save the stack as.
-            stack_configuration: Dict[StackComponentType, str] to persist.
+            stack_configuration: Dict[StackComponentFlavor, str] to persist.
         """
         with Session(self.engine) as session:
             stack = CoalescenceStack(name=name, created_by=1)
@@ -277,19 +277,19 @@ class SqlStackStore(BaseStackStore):
                     session.add(
                         CoalescenceStackDefinition(
                             stack_name=name,
-                            component_type=ctype,
+                            component_flavor=ctype,
                             component_name=cname,
                         )
                     )
             session.commit()
 
     def _get_component_flavor_and_config(
-        self, component_type: StackComponentType, name: str
+        self, component_flavor: StackComponentFlavor, name: str
     ) -> Tuple[str, bytes]:
         """Fetch the flavor and configuration for a stack component.
 
         Args:
-            component_type: The type of the component to fetch.
+            component_flavor: The type of the component to fetch.
             name: The name of the component to fetch.
 
         Returns:
@@ -302,40 +302,40 @@ class SqlStackStore(BaseStackStore):
         with Session(self.engine) as session:
             component = session.exec(
                 select(CoalescenceStackComponent)
-                .where(CoalescenceStackComponent.component_type == component_type)
+                .where(CoalescenceStackComponent.component_flavor == component_flavor)
                 .where(CoalescenceStackComponent.name == name)
             ).one_or_none()
             if component is None:
                 raise KeyError(
-                    f"Unable to find stack component (type: {component_type}) "
+                    f"Unable to find stack component (type: {component_flavor}) "
                     f"with name '{name}'."
                 )
         return component.component_flavor, component.configuration
 
     def _get_stack_component_names(
-        self, component_type: StackComponentType
+        self, component_flavor: StackComponentFlavor
     ) -> List[str]:
         """Get names of all registered stack components of a given type.
 
         Args:
-            component_type: The type of the component to list names for.
+            component_flavor: The type of the component to list names for.
 
         Returns:
             A list of names as strings.
         """
         with Session(self.engine) as session:
             statement = select(CoalescenceStackComponent).where(
-                CoalescenceStackComponent.component_type == component_type
+                CoalescenceStackComponent.component_flavor == component_flavor
             )
             return [component.name for component in session.exec(statement)]
 
     def _delete_stack_component(
-        self, component_type: StackComponentType, name: str
+        self, component_flavor: StackComponentFlavor, name: str
     ) -> None:
         """Remove a StackComponent from storage.
 
         Args:
-            component_type: The type of component to delete.
+            component_flavor: The type of component to delete.
             name: Then name of the component to delete.
 
         Raises:
@@ -344,7 +344,7 @@ class SqlStackStore(BaseStackStore):
         with Session(self.engine) as session:
             component = session.exec(
                 select(CoalescenceStackComponent)
-                .where(CoalescenceStackComponent.component_type == component_type)
+                .where(CoalescenceStackComponent.component_flavor == component_flavor)
                 .where(CoalescenceStackComponent.name == name)
             ).first()
             if component is not None:
@@ -353,7 +353,7 @@ class SqlStackStore(BaseStackStore):
             else:
                 raise KeyError(
                     "Unable to deregister stack component (type: "
-                    f"{component_type.value}) with name '{name}': No stack "
+                    f"{component_flavor.value}) with name '{name}': No stack "
                     "component exists with this name."
                 )
 

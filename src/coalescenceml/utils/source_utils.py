@@ -27,6 +27,7 @@ def get_source(value: Any) -> str:
     if Environment.in_notebook():
         # Hacky patch inspect.getfile temporarily to make get_source work.
         # Source: https://stackoverflow.com/questions/51566497/
+        # The BS that jupyter notebooks make us do...
         def _new_getfile(
             object: Any,
             _old_getfile: Callable[

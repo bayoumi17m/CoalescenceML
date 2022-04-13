@@ -3,7 +3,7 @@ from typing import DefaultDict, Dict
 
 from pydantic import BaseModel, validator
 
-from coalescenceml.enums import StackComponentType
+from coalescenceml.enums import StackComponentFlavor
 
 
 class StackStoreModel(BaseModel):
@@ -17,13 +17,13 @@ class StackStoreModel(BaseModel):
             components.
     """
 
-    stacks: Dict[str, Dict[StackComponentType, str]]
-    stack_components: DefaultDict[StackComponentType, Dict[str, str]]
+    stacks: Dict[str, Dict[StackComponentFlavor, str]]
+    stack_components: DefaultDict[StackComponentFlavor, Dict[str, str]]
 
     @validator("stack_components")
     def _construct_defaultdict(
-        cls, stack_components: Dict[StackComponentType, Dict[str, str]]
-    ) -> DefaultDict[StackComponentType, Dict[str, str]]:
+        cls, stack_components: Dict[StackComponentFlavor, Dict[str, str]]
+    ) -> DefaultDict[StackComponentFlavor, Dict[str, str]]:
         """Ensures that `stack_components` is a defaultdict so stack
         components of a new component type can be added without issues."""
         return defaultdict(dict, stack_components)
