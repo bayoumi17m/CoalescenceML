@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, cast
 
 from pydantic import BaseModel, Field, ValidationError, validator
 from pydantic.main import ModelMetaclass
-from semver import VersionInfo  # type: ignore[import]
+from semver import VersionInfo
 
 from coalescenceml import __version__
 from coalescenceml.config.base_config import BaseConfiguration
@@ -322,10 +322,6 @@ class GlobalConfiguration(
         profile._config = self
         if profile.name not in self.profiles:
             profile.initialize()
-            track_event(
-                AnalyticsEvent.INITIALIZED_PROFILE,
-                {"store_type": profile.store_type.value},
-            )
         self.profiles[profile.name] = profile
         self._write_config()
         return profile

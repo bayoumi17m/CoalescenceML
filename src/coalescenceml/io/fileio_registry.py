@@ -5,8 +5,10 @@ from typing import Dict, Type
 from tfx.dsl.io.filesystem import Filesystem, PathType
 from tfx.dsl.io.plugins.local import LocalFilesystem
 
+from coalescenceml.constants import console
 
-class FileIORegistry(Object):
+
+class FileIORegistry(object):
     """FileIORegistry contains a mapping of filesystem implementations used in TFX components"""
 
     def __init__(self) -> None:
@@ -21,9 +23,10 @@ class FileIORegistry(Object):
         """
         with self.registration_lock:
             for schema in filesystem.SUPPORTED_SCHEMES:
-                current = self.filesystems.get(scheme)
+                current = self.filesystems.get(schema)
                 if current is not None:
-                    warnings.warn("Warning: Found an associated filesystem {current} with the schema {schema}. This schema is also associated with filesystem {filesystem} and will be overwritten. Behvaior may change in future.")
+                    console.print("Warning: Found an associated filesystem {current} with the schema {schema}. This schema is also associated with filesystem {filesystem} and will be overwritten. Behvaior may change in future.", style="warning")
+                    #warnings.warn("Warning: Found an associated filesystem {current} with the schema {schema}. This schema is also associated with filesystem {filesystem} and will be overwritten. Behvaior may change in future.")
                 self.filesystems[schema] = filesystem
 
     def get_filesystem_for_schema(self, schema: PathType) -> Type[Filesystem]:

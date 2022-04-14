@@ -1,13 +1,16 @@
+from __future__ import annotations
 import os
 import platform
 from importlib.util import find_spec
-from typing import Any, Dict, Optional, Tuple, Type, cast
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Type, cast
 
 import distro
 
 from coalescenceml.logger import get_logger
 from coalescenceml.utils.singleton import SingletonMetaClass
-from coalescenceml.steps import StepEnvironment
+
+if TYPE_CHECKING:
+    from coalescenceml.step import StepEnvironment
 
 logger = get_logger(__name__)
 
@@ -32,7 +35,7 @@ class Environment(metaclass=SingletonMetaClass):
     @property
     def step_is_running(self) -> bool:
         """Returns if a step is currently running."""
-        from coalescenceml.steps import STEP_ENVIRONMENT_NAME
+        from coalescenceml.step import STEP_ENVIRONMENT_NAME
 
         # A step is considered to be running if there is an active step
         # environment

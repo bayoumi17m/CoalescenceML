@@ -5,12 +5,12 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from coalescenceml.enums import StackComponentFlavor, StoreType
-from coalescenceml.exceptions import StackComponentExistsError
+from coalescenceml.enums import StackComponentFlavor, DirectoryStoreFlavor
 from coalescenceml.io import fileio, utils
 from coalescenceml.logger import get_logger
-from coalescenceml.stack_stores import BaseStackStore
-from coalescenceml.stack_stores.models import StackComponentWrapper, StackStoreModel
+from coalescenceml.stack.exceptions import StackComponentExistsError
+from coalescenceml.stack_store import BaseStackStore
+from coalescenceml.stack_store.model import StackComponentWrapper, StackStoreModel
 from coalescenceml.utils import yaml_utils
 
 logger = get_logger(__name__)
@@ -58,9 +58,9 @@ class LocalStackStore(BaseStackStore):
     # Public interface implementations:
 
     @property
-    def type(self) -> StoreType:
+    def type(self) -> DirectoryStoreFlavor:
         """The type of stack store."""
-        return StoreType.LOCAL
+        return DirectoryStoreFlavor.LOCAL
 
     @property
     def url(self) -> str:
@@ -262,7 +262,7 @@ class LocalStackStore(BaseStackStore):
         self, component_flavor: StackComponentFlavor, name: str
     ) -> str:
         """Path to the configuration file of a stack component."""
-        path = self.root / component_flavor.plural / f"{name}.yaml"
+        path = self.root / component_flavor / f"{name}.yaml"
         return str(path)
 
     def _store_path(self) -> str:

@@ -6,7 +6,7 @@ coml_custom_theme = Theme(
     {
         "info": "dim cyan",
         "warning": "magenta",
-        "danger": "bold red"
+        "danger": "bold red",
         "error": "red",
         "title": "bold cyan underline"
     }
@@ -40,7 +40,7 @@ ENV_COML_PROFILE_NAME = "COML_PROFILE_NAME"
 ENV_COML_DIRECTORY_PATH = "COML_DIRECTORY_PATH"
 
 # Logging variables
-IS_DEBUG_ENV: bool = handle_bool_env_var(ENV_COML_DEBUG, default=False)
+IS_DEBUG_ENV: bool = process_bool_env_var(ENV_COML_DEBUG, default=False)
 
 COML_LOGGING_VERBOSITY: str = "INFO"
 
@@ -59,10 +59,13 @@ REMOTE_FS_PREFIX = ["gs://", "s3://", "az://"]
 
 
 # Container utils
-SHOULD_PREVENT_PIPELINE_EXECUTION = handle_bool_env_var(
+SHOULD_PREVENT_PIPELINE_EXECUTION = process_bool_env_var(
     ENV_COML_PREVENT_PIPELINE_EXECUTION
 )
 
 # DIRECTORY and local store directory paths:
 DIRECTORY_DIRECTORY_NAME = ".coalescence"
 LOCAL_STORES_DIRECTORY_NAME = "local_stores"
+
+# SPECIAL KEYS
+RUN_NAME_OPTION_KEY = "run_name"

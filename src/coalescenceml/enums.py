@@ -1,7 +1,8 @@
 import logging
 from enum import Enum
+from typing import List
 
-class DictEnum(Enum):
+class DictEnum(str, Enum):
 
     @classmethod
     def names(cls) -> List[str]:

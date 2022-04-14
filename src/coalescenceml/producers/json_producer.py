@@ -3,7 +3,7 @@ from typing import Any, Type
 
 from coalescenceml.artifacts import DataAnalysisArtifact, DataArtifact
 from coalescenceml.logger import get_logger
-from coalescenceml.materializers.base_materializer import BaseProducer
+from coalescenceml.producers.base_producer import BaseProducer
 from coalescenceml.utils import yaml_utils
 
 logger = get_logger(__name__)

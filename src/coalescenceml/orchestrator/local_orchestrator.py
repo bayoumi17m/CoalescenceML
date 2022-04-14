@@ -1,3 +1,4 @@
+from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -16,9 +17,11 @@ from coalescenceml.enums import MetadataContextFlavor
 from coalescenceml.logger import get_logger
 from coalescenceml.orchestrator import BaseOrchestrator, utils
 from coalescenceml.directory import Directory
-from coalescenceml.pipeline.base_pipeline import BasePipeline
-from coalescenceml.pipeline.runtime_configuration import RuntimeConfiguration
-from coalescenceml.stack import Stack
+
+if TYPE_CHECKING:
+    from coalescenceml.pipeline.base_pipeline import BasePipeline
+    from coalescenceml.pipeline.runtime_configuration import RuntimeConfiguration
+    from coalescenceml.stack import Stack
 
 
 logger = get_logger(__name__)

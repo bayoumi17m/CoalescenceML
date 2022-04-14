@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 from typing import Any, Type
 
@@ -9,6 +10,7 @@ from numpy.typing import NDArray
 from coalescenceml.artifacts import DataArtifact
 from coalescenceml.io import fileio
 from coalescenceml.producers.base_producer import BaseProducer
+from coalescenceml.producers.producer_registry import producer_registry
 from coalescenceml.utils.json_utils import read_json, write_json
 
 
@@ -68,3 +70,6 @@ class NumpyProducer(BaseProducer):
         ) as fp:
             stream = pa.output_stream(f)
             pq.write_table(pa_table, stream)
+
+
+producer_registry.register_producer(np.ndarray, NumpyProducer)

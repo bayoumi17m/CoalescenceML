@@ -5,11 +5,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-from coalescenceml.enums import StackComponentFlavor, StoreType
+from coalescenceml.enums import StackComponentFlavor, DirectoryStoreFlavor
 from coalescenceml.stack.exceptions import StackComponentExistsError, StackExistsError
 from coalescenceml.logger import get_logger
 from coalescenceml.stack import Stack
-from coalescenceml.stack_stores.models import StackComponentWrapper, StackWrapper
+from coalescenceml.stack_store.model import StackComponentWrapper, StackWrapper
 
 logger = get_logger(__name__)
 
@@ -76,7 +76,7 @@ class BaseStackStore(ABC):
 
     @property
     @abstractmethod
-    def type(self) -> StoreType:
+    def type(self) -> DirectoryStoreFlavor:
         """The type of stack store."""
 
     @property
@@ -323,7 +323,6 @@ class BaseStackStore(ABC):
         stack = Stack.default_local_stack()
         metadata = self.register_stack(StackWrapper.from_stack(stack))
         metadata["store_type"] = self.type.value
-        track_event(AnalyticsEvent.REGISTERED_STACK, metadata=metadata)
 
     # Common code (internal implementations, private):
 

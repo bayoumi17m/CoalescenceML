@@ -1,3 +1,4 @@
+from __future__ import annotations
 import inspect
 from abc import abstractmethod
 from typing import (
@@ -30,13 +31,15 @@ from coalescenceml.pipeline.exceptions import (
 from coalescenceml.integrations.registry import integration_registry
 from coalescenceml.io import fileio, utils
 from coalescenceml.logger import get_logger
-from coalescenceml.pipelines.schedule import Schedule
 from coalescenceml.directory import Directory
+from coalescenceml.pipeline.schedule import Schedule
 from coalescenceml.pipeline.runtime_configuration import RuntimeConfiguration
 from coalescenceml.step import BaseStep
 from coalescenceml.utils import yaml_utils
 from coalescenceml.stack.exceptions import StackValidationError
-from coalescenceml.stack import Stack
+
+if TYPE_CHECKING:
+    from coalescenceml.stack import Stack
 
 logger = get_logger(__name__)
 PIPELINE_INNER_FUNC_NAME: str = "build_dag"
@@ -321,7 +324,7 @@ class BasePipeline(metaclass=BasePipelineMeta):
         # the airflow orchestrator so it knows which file to copy into the DAG
         # directory
         dag_filepath = utils.resolve_relative_path(
-            inspect.currentframe().f_back.f_code.co_filename  # type: ignore[union-attr] # noqa
+            inspect.currentframe().f_back.f_code.co_filename
         )
         runtime_configuration = RuntimeConfiguration(
             run_name=run_name,

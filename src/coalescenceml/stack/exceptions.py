@@ -9,3 +9,11 @@ class StackComponentExistsError(Exception):
 
 class StackValidationError(Exception):
     """Raised when a stack configuration is not valid."""
+
+class StackComponentInterfaceError(Exception):
+    """Raises exception when interacting with the stack components
+    in an unsupported way."""
+
+class ProvisioningError(Exception):
+    """Raised when an error occurs when provisioning resources for a
+    StackComponent."""

@@ -13,4 +13,4 @@ class Output:
         Yields:
             Tuple[str, Type[Any]]: A pair of the output name and type
         """
-        yield from self.outputs._asdict().items()
+        yield from self.outputs.__annotations__.items()

@@ -27,17 +27,17 @@ from tfx.types.channel import Channel
 
 from coalescenceml.artifacts.base_artifact import BaseArtifact
 from coalescenceml.artifacts.type_registry import type_registry
-from coalescenceml.exceptions import MissingStepParameterError, StepInterfaceError
+from coalescenceml.step.exceptions import MissingStepParameterError, StepInterfaceError
 from coalescenceml.logger import get_logger
-from coalescenceml.producers.base_producer import Baseproducer
-from coalescenceml.producers.default_producer_registry import (
-    default_producer_registry,
+from coalescenceml.producers.base_producer import BaseProducer
+from coalescenceml.producers.producer_registry import (
+    producer_registry,
 )
-from coalescenceml.step_operators.step_executor_operator import StepExecutorOperator
-from coalescenceml.steps.base_step_config import BaseStepConfig
-from coalescenceml.steps.step_context import StepContext
-from coalescenceml.steps.step_output import Output
-from coalescenceml.steps.utils import (
+from coalescenceml.step_operator.step_executor_operator import StepExecutorOperator
+from coalescenceml.step.base_step_config import BaseStepConfig
+from coalescenceml.step.step_context import StepContext
+from coalescenceml.step.output import Output
+from coalescenceml.step.utils import (
     INSTANCE_CONFIGURATION,
     INTERNAL_EXECUTION_PARAMETER_PREFIX,
     PARAM_CREATED_BY_FUNCTIONAL_API,
@@ -248,7 +248,7 @@ class BaseStep(metaclass=BaseStepMeta):
         )
         self.enable_cache = enable_cache
 
-        self._explicit_producers: Dict[str, Type[Baseproducer]] = {}
+        self._explicit_producers: Dict[str, Type[BaseProducer]] = {}
         self._component: Optional[_CoMLSimpleComponent] = None
         self._has_been_called = False
 
@@ -261,7 +261,7 @@ class BaseStep(metaclass=BaseStepMeta):
 
     def get_producers(
         self, ensure_complete: bool = False
-    ) -> Dict[str, Type[Baseproducer]]:
+    ) -> Dict[str, Type[BaseProducer]]:
         """Returns available producers for the outputs of this step.
 
         Args:
@@ -270,7 +270,7 @@ class BaseStep(metaclass=BaseStepMeta):
                 output.
 
         Returns:
-            A dictionary mapping output names to `Baseproducer` subclasses.
+            A dictionary mapping output names to `BaseProducer` subclasses.
                 If no explicit producer was set using
                 `step.with_return_producers(...)`, this checks the
                 default producer registry to find a producer for the
@@ -289,8 +289,8 @@ class BaseStep(metaclass=BaseStepMeta):
             if output_name in producers:
                 # producer for this output was set explicitly
                 pass
-            elif default_producer_registry.is_registered(output_type):
-                producer = default_producer_registry[output_type]
+            elif producer_registry.is_registered(output_type):
+                producer = producer_registry[output_type]
                 producers[output_name] = producer
             else:
                 if ensure_complete:
@@ -301,9 +301,8 @@ class BaseStep(metaclass=BaseStepMeta):
                         f"explicitly set a producer for step outputs "
                         f"using `step.with_return_producers(...)` or "
                         f"registering a default producer for specific "
-                        f"types by subclassing `Baseproducer` and setting "
-                        f"its `ASSOCIATED_TYPES` class variable.",
-                        url="https://docs.coalescenceml.io/guides/index/custom-producer",
+                        f"types by subclassing `BaseProducer` and setting "
+                        f"its `ASSOCIATED_TYPES` class variable."
                     )
 
         return producers
@@ -435,7 +434,7 @@ class BaseStep(metaclass=BaseStepMeta):
                     f"`{output_type}`. Allowed artifact types: "
                     f"{allowed_artifact_types}. If you want to extend the "
                     f"allowed artifact types, implement a custom "
-                    f"`Baseproducer` subclass and set its "
+                    f"`BaseProducer` subclass and set its "
                     f"`ASSOCIATED_ARTIFACT_TYPES` and `ASSOCIATED_TYPES` "
                     f"accordingly."
                 )
@@ -651,7 +650,7 @@ class BaseStep(metaclass=BaseStepMeta):
     def with_return_producers(
         self: T,
         producers: Union[
-            Type[Baseproducer], Dict[str, Type[Baseproducer]]
+            Type[BaseProducer], Dict[str, Type[BaseProducer]]
         ],
     ) -> T:
         """Register producers for step outputs.
@@ -667,15 +666,15 @@ class BaseStep(metaclass=BaseStepMeta):
             The object that this method was called on.
 
         Raises:
-            StepInterfaceError: If a producer is not a `Baseproducer`
+            StepInterfaceError: If a producer is not a `BaseProducer`
                 subclass or a producer for a non-existent output is given.
         """
 
         def _is_producer_class(value: Any) -> bool:
-            """Checks whether the given object is a `Baseproducer`
+            """Checks whether the given object is a `BaseProducer`
             subclass."""
             is_class = isinstance(value, type)
-            return is_class and issubclass(value, Baseproducer)
+            return is_class and issubclass(value, BaseProducer)
 
         if isinstance(producers, dict):
             allowed_output_names = set(self.OUTPUT_SIGNATURE)
@@ -694,7 +693,7 @@ class BaseStep(metaclass=BaseStepMeta):
                     raise StepInterfaceError(
                         f"Got unexpected object `{producer}` as "
                         f"producer for output '{output_name}' of step "
-                        f"'{self.name}'. Only `Baseproducer` "
+                        f"'{self.name}'. Only `BaseProducer` "
                         f"subclasses are allowed."
                     )
                 self._explicit_producers[output_name] = producer
@@ -708,8 +707,8 @@ class BaseStep(metaclass=BaseStepMeta):
             raise StepInterfaceError(
                 f"Got unexpected object `{producers}` as output "
                 f"producer for step '{self.name}'. Only "
-                f"`Baseproducer` subclasses or dictionaries mapping "
-                f"output names to `Baseproducer` subclasses are allowed "
+                f"`BaseProducer` subclasses or dictionaries mapping "
+                f"output names to `BaseProducer` subclasses are allowed "
                 f"as input when specifying return producers."
             )
 

@@ -1,4 +1,8 @@
-from zenml.steps import BaseStepConfig
+from __future__ import annotations
+from typing import TYPE_CHECKING, List
+
+if TYPE_CHECKING:
+    from coalescenceml.step import BaseStepConfig
 
 class StepContextError(Exception):
     """Raises exception when interacting with a StepContext

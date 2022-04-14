@@ -1,10 +1,13 @@
-from typing import Any, Dict, Optional, cast
+from __future__ import annotations
+from typing import TYPE_CHECKING, Any, Dict, Optional, cast
 
+from coalescenceml.constants import RUN_NAME_OPTION_KEY
 from coalescenceml.logger import get_logger
-from coalescenceml.pipeline import Schedule
+
+if TYPE_CHECKING:
+    from coalescenceml.pipeline import Schedule
 
 logger = get_logger(__name__)
-RUN_NAME_OPTION_KEY = "run_name"
 SCHEDULE_OPTION_KEY = "schedule"
 
 class RuntimeConfiguration(Dict[str, Any]):

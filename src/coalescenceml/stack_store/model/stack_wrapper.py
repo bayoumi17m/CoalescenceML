@@ -3,7 +3,7 @@ from typing import List
 from pydantic import BaseModel
 
 from coalescenceml.stack import Stack
-from coalescenceml.stack_stores.models import StackComponentWrapper
+from coalescenceml.stack_store.model import StackComponentWrapper
 
 
 class StackWrapper(BaseModel):

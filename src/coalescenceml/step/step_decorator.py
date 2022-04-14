@@ -9,8 +9,8 @@ from typing import (
     overload,
 )
 
-from coalescenceml.steps import BaseStep
-from coalescenceml.steps.utils import (
+from coalescenceml.step import BaseStep
+from coalescenceml.step.utils import (
     INSTANCE_CONFIGURATION,
     OUTPUT_SPEC,
     PARAM_CREATED_BY_FUNCTIONAL_API,
@@ -22,6 +22,11 @@ from coalescenceml.steps.utils import (
 from coalescenceml.artifacts.base_artifact import BaseArtifact
 
 F = TypeVar("F", bound=Callable[..., Any])
+
+@overload
+def step(func: F) -> Type[BaseStep]:
+    ...
+
 
 def step(
     func: F,
@@ -38,7 +43,7 @@ def step(
 
     return type(
         step_name,
-        (BaseStep,)
+        (BaseStep,),
         {
             STEP_INNER_FUNC_NAME: staticmethod(func),
             INSTANCE_CONFIGURATION: {
@@ -47,10 +52,6 @@ def step(
                 PARAM_CUSTOM_STEP_OPERATOR: custom_step_operator,
             },
             OUTPUT_SPEC: output_spec,
-            "__module__": func.__module__,
-        },
+            "__model__": func.__module__,
+        }
     )
-
-@overload
-def step(func: F) -> Type[BaseStep]:
-    ...

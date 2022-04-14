@@ -2,14 +2,14 @@ from typing import Optional
 
 import click
 
-from zenml.cli import utils as cli_utils
-from zenml.cli.cli import cli
-from zenml.config.global_config import GlobalConfiguration
-from zenml.constants import console
-from zenml.enums import StackComponentFlavor
-from zenml.exceptions import ProvisioningError
-from zenml.directory import Directory
-from zenml.stack import Stack
+from coalescenceml.cli import utils as cli_utils
+from coalescenceml.cli.cli import cli
+from coalescenceml.config.global_config import GlobalConfiguration
+from coalescenceml.constants import console
+from coalescenceml.enums import StackComponentFlavor
+from coalescenceml.stack.exceptions import ProvisioningError
+from coalescenceml.directory import Directory
+from coalescenceml.stack import Stack
 
 
 # Stacks
@@ -243,7 +243,7 @@ def delete_stack(stack_name: str) -> None:
             cli_utils.error(
                 f"Stack {stack_name} cannot be deleted while it is globally "
                 f"active. Please choose a different active global stack first "
-                f"by running 'zenml stack set --global STACK'."
+                f"by running 'coml stack set --global STACK'."
             )
             return
 
@@ -251,7 +251,7 @@ def delete_stack(stack_name: str) -> None:
             cli_utils.error(
                 f"Stack {stack_name} cannot be deleted while it is "
                 f"active. Please choose a different active stack first by "
-                f"running 'zenml stack set STACK'."
+                f"running 'coml stack set STACK'."
             )
             return
 

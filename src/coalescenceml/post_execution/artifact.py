@@ -1,11 +1,13 @@
+from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Optional, Type
 
 from coalescenceml.logger import get_logger
 from coalescenceml.utils import source_utils
 
-from coalescenceml.producers.base_producer import BaseProducer
-from coalescenceml.metadata_stores import BaseMetadataStore
-from coalescenceml.post_execution.step import StepView
+if TYPE_CHECKING:
+    from coalescenceml.producers.base_producer import BaseProducer
+    from coalescenceml.metadata_store import BaseMetadataStore
+    from coalescenceml.post_execution.step import StepView
 
 logger = get_logger(__name__)
 

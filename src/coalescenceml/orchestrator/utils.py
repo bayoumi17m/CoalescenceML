@@ -1,8 +1,9 @@
+from __future__ import annotations
 import json
 import logging
 import time
 import uuid
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, cast
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, List, Optional, Tuple, cast
 
 import tfx.orchestration.pipeline as tfx_pipeline
 from tfx.orchestration.portable import data_types, launcher
@@ -16,9 +17,12 @@ from coalescenceml.step.utils import (
     PARAM_PIPELINE_PARAMETER_NAME,
 )
 from coalescenceml.utils import readability_utils
-from coalescenceml.pipeline.base_pipeline import BasePipeline
-from coalescenceml.pipeline.runtime_configuration import RuntimeConfiguration
-from coalescenceml.stack import Stack
+    
+
+if TYPE_CHECKING:
+    from coalescenceml.pipeline.base_pipeline import BasePipeline
+    from coalescenceml.pipeline.runtime_configuration import RuntimeConfiguration
+    from coalescenceml.stack import Stack
 
 logger = get_logger(__name__)
 

@@ -1,9 +1,11 @@
-from typing import Any, List
+from __future__ import annotations
+from typing import TYPE_CHECKING, Any, List
 
 from coalescenceml.logger import get_logger
 
-from coalescenceml.metadata_stores import BaseMetadataStore
-from coalescenceml.post_execution.pipeline_run import PipelineRunView
+if TYPE_CHECKING:
+    from coalescenceml.metadata_store import BaseMetadataStore
+    from coalescenceml.post_execution.pipeline_run import PipelineRunView
 
 logger = get_logger(__name__)
 

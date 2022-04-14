@@ -3,7 +3,7 @@ from typing import ClassVar, Union
 from ml_metadata.proto import metadata_store_pb2
 from tfx.orchestration import metadata
 
-from coalescenceml.metadata_stores import BaseMetadataStore
+from coalescenceml.metadata_store import BaseMetadataStore
 
 
 class MySQLMetadataStore(BaseMetadataStore):

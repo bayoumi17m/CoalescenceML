@@ -24,6 +24,8 @@ class TypeRegistry(object):
     def get_artifact_type(self, key: Type[Any]) -> Tuple[Type[BaseArtifact], ...]:
         """
         """
+        print(key)
+        print(self._artifact_types.items())
         if key in self._artifact_types:
             return self._artifact_types[key]
         else:
@@ -36,10 +38,11 @@ class TypeRegistry(object):
 
             if len(artifact_types_for_superclasses) == 1:
                 return artifact_types_for_superclasses.pop()
-            elif len(artifact_types_superclasses) > 1:
-                raise RuntimeError("")
+            elif len(artifact_types_for_superclasses) > 1:
+                raise RuntimeError("Too many")
             else:
-                raise RuntimeError("")
+                print(len(artifact_types_for_superclasses))
+                raise RuntimeError("Too little")
 
     def registry_artifact_type(self) -> None:
         pass

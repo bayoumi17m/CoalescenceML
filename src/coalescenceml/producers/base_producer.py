@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from inspect import isclass
 from typing import Any, ClassVar, Dict, Tuple, Type, cast
 
@@ -6,10 +7,10 @@ from coalescenceml.artifacts.type_registry import type_registry
 from coalescenceml.producers.producer_registry import producer_registry
 
 
-def BaseProducer(object):
+class BaseProducer(object):
     """BaseProducer to produce artifact data."""
 
-    ARTIFACT_TYPES: ClassVar[Tuple[Type[BaseArtifact]], ...]] = ()
+    ARTIFACT_TYPES: ClassVar[Tuple[Type[BaseArtifact], ...]] = ()
     TYPES: ClassVar[Tuple[Type[Any], ...]] = ()
 
     def __init__(self, artifact: BaseArtifact):

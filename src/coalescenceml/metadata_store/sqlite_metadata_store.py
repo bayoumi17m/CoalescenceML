@@ -5,7 +5,7 @@ from pydantic import validator
 from tfx.orchestration import metadata
 
 from coalescenceml.io import utils
-from coalescenceml.metadata_stores import BaseMetadataStore
+from coalescenceml.metadata_store import BaseMetadataStore
 
 
 class SQLiteMetadataStore(BaseMetadataStore):

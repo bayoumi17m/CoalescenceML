@@ -1,20 +1,18 @@
 import base64
 import json
 import os
-import random
 from abc import ABCMeta
-from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, cast
 
 import yaml
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from coalescenceml.config.base_config import BaseConfiguration
 from coalescenceml.config.global_config import GlobalConfiguration
 from coalescenceml.config.profile_config import ProfileConfiguration
-from coalescenceml.constants import ENV_coalescenceml_DIRECTORY_PATH, DIRECTORY_DIRECTORY_NAME
-from coalescenceml.enums import StackComponentFlavor, StoreType
+from coalescenceml.constants import ENV_COML_DIRECTORY_PATH, DIRECTORY_DIRECTORY_NAME
+from coalescenceml.enums import StackComponentFlavor, DirectoryStoreFlavor
 from coalescenceml.environment import Environment
 from coalescenceml.exceptions import (
     ForbiddenDirectoryAccessError,
@@ -29,9 +27,8 @@ from coalescenceml.stack_store import (
     LocalStackStore,
     SqlStackStore,
 )
-from coalescenceml.stack_store.models import (
+from coalescenceml.stack_store.model import (
     StackComponentWrapper,
-    StackStoreModel,
     StackWrapper,
 )
 from coalescenceml.utils import yaml_utils
@@ -236,7 +233,7 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
             # a globally active profile, but we need to be prepared for it
             raise RuntimeError(
                 "No active configuration profile found. Please set the active "
-                "profile in the global configuration by running `COml profile "
+                "profile in the global configuration by running `coml profile "
                 "set <profile-name>`."
             )
 
@@ -324,7 +321,7 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
         if not self.__config.active_stack_name:
             raise RuntimeError(
                 "Could not determine active stack. Please set the active stack "
-                "by running `COml stack set <stack-name>`."
+                "by running `coml stack set <stack-name>`."
             )
 
         # Ensure that the directory active stack is still valid
@@ -385,12 +382,11 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
         yaml_utils.write_yaml(config_path, config_dict)
 
     @staticmethod
-    def get_store_class(type: StoreType) -> Optional[Type[BaseStackStore]]:
+    def get_store_class(type: DirectoryStoreFlavor) -> Optional[Type[BaseStackStore]]:
         """Returns the class of the given store type."""
         return {
-            StoreType.LOCAL: LocalStackStore,
-            StoreType.SQL: SqlStackStore,
-            StoreType.REST: RestStackStore,
+            DirectoryStoreFlavor.LOCAL: LocalStackStore,
+            DirectoryStoreFlavor.SQL: SqlStackStore,
         }.get(type)
 
     @staticmethod
@@ -425,9 +421,6 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
             profile.store_url = store_class.get_local_url(
                 profile.config_directory
             )
-
-        if profile.store_type == StoreType.REST:
-            skip_default_stack = True
 
         if store_class.is_valid_url(profile.store_url):
             store = store_class()
@@ -543,7 +536,7 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
             # a globally active profile, but we need to be prepared for it
             raise RuntimeError(
                 "No active configuration profile found. Please set the active "
-                "profile in the global configuration by running `COml profile "
+                "profile in the global configuration by running `coml profile "
                 "set <profile-name>`."
             )
 
@@ -608,7 +601,7 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
         if not stack_name:
             raise RuntimeError(
                 "No active stack is configured for the directory. Run "
-                "`COml stack set STACK_NAME` to update the active stack."
+                "`coml stack set STACK_NAME` to update the active stack."
             )
 
         return stack_name
@@ -769,7 +762,7 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
         if not stack_name:
             raise RuntimeError(
                 "No active stack is configured for the directory. Run "
-                "`COml stack set STACK_NAME` to update the active stack."
+                "`coml stack set STACK_NAME` to update the active stack."
             )
         metadata_store = self.get_stack(stack_name).metadata_store
         return metadata_store.get_pipelines()
@@ -795,7 +788,7 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
         if not stack_name:
             raise RuntimeError(
                 "No active stack is configured for the directory. Run "
-                "`COml stack set STACK_NAME` to update the active stack."
+                "`coml stack set STACK_NAME` to update the active stack."
             )
         metadata_store = self.get_stack(stack_name).metadata_store
         return metadata_store.get_pipeline(pipeline_name)
@@ -850,7 +843,7 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
                 f"want to use an existing directory which is in a different "
                 f"location, set the environment variable "
                 f"'{ENV_COML_DIRECTORY_PATH}'. If you want to create a new "
-                f"directory, run `COml init`."
+                f"directory, run `coml init`."
             )
 
         def _find_repo_helper(path_: Path) -> Optional[Path]:
@@ -876,12 +869,12 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
         self, wrapper: StackComponentWrapper
     ) -> StackComponent:
         """Instantiate a StackComponent from the Configuration."""
-        from COml.stack.stack_component_class_registry import (
+        from coalescenceml.stack.stack_component_class_registry import (
             StackComponentClassRegistry,
         )
 
         component_class = StackComponentClassRegistry.get_class(
-            component_flavor=wrapper.type, component_flavor=wrapper.flavor
+            component_type=wrapper.type, component_flavor=wrapper.flavor
         )
         component_config = yaml.safe_load(
             base64.b64decode(wrapper.config).decode()

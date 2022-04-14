@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "coalescenceml"
-version = "0.0.1"
+version = "0.1.0"
 description = "An open-source MLOps framework to develop industry-grade production ML pipelines coalescing the MLOps stack under one umbrella."
 authors = ["Magd Bayoumi, Rafael Chaves, Elva Gao, Sanjali Jha, Iris Li, Jerry Sun, Emily Wang"]
 license = "Apache License 2.0"
@@ -46,7 +46,11 @@ click = "^8.0.1"
 pyyaml = "^5.4.1"
 python-dateutil = "^2.8.1"
 sqlmodel = "~0.0.6"
-semvar = "^1.2.0"
+semver = "^2.13.0"
+distro = "^1.7.0"
+numpy = "^1.21.6"
+pandas = "^1.2.0"
+pyarrow = "^7.0.0"
 
 [tool.poetry.dev-dependencies]
 xdoctest = "^0.15.10"

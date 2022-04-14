@@ -6,12 +6,12 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError, NoResultFound
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
-from coalescenceml.enums import StackComponentFlavor, StoreType
-from coalescenceml.exceptions import StackComponentExistsError
+from coalescenceml.enums import StackComponentFlavor, DirectoryStoreFlavor
 from coalescenceml.io import utils
 from coalescenceml.logger import get_logger
-from coalescenceml.stack_stores import BaseStackStore
-from coalescenceml.stack_stores.models import StackComponentWrapper
+from coalescenceml.stack.exceptions import StackComponentExistsError
+from coalescenceml.stack_store import BaseStackStore
+from coalescenceml.stack_store.model import StackComponentWrapper
 
 logger = get_logger(__name__)
 
@@ -86,9 +86,9 @@ class SqlStackStore(BaseStackStore):
     # Public interface implementations:
 
     @property
-    def type(self) -> StoreType:
+    def type(self) -> DirectoryStoreFlavor:
         """The type of stack store."""
-        return StoreType.SQL
+        return DirectoryStoreFlavor.SQL
 
     @property
     def url(self) -> str:
@@ -224,7 +224,7 @@ class SqlStackStore(BaseStackStore):
                     f"existing stack component with this name."
                 )
             new_component = CoalescenceStackComponent(
-                component_flavor=component.type,
+                component_type=component.type,
                 name=component.name,
                 component_flavor=component.flavor,
                 configuration=component.config,

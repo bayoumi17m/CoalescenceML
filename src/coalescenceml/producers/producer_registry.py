@@ -1,8 +1,11 @@
-from typing import Any, Dict, Type
+from __future__ import annotations
+from typing import TYPE_CHECKING, Any, Dict, Type
 
 # Exception
 from coalescenceml.logger import get_logger
-from coalescenceml.producer.base_producer import BaseProducer
+
+if TYPE_CHECKING:
+    from coalescenceml.producers.base_producer import BaseProducer
 
 
 logger = get_logger(__name__)
@@ -20,8 +23,8 @@ class ProducerRegistry(object):
             object_type: Indicates python type of object.
             producer: A BaseProducer subclass for the python type.
         """
-        if key in self.producer_types:
-            logger.debug(f"Found existing producer for {key}: {self.producer_types[key]}. Skipping registration of {producer}.")
+        if object_type in self.producer_types:
+            logger.debug(f"Found existing producer for {object_type}: {self.producer_types[object_type]}. Skipping registration of {producer}.")
         else:
             self.producer_types[object_type] = producer
             logger.debug(f"Registered producer {producer} for {object_type}.")

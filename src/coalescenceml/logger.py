@@ -4,7 +4,7 @@ from logging.handlers import TimedRotatingFileHandler
 from typing import Any, Dict
 
 from rich.logging import RichHandler
-from rich.traceback import install as rich_traceback_install
+from rich.traceback import install as rich_tb_install
 
 from coalescenceml.constants import (
     APP_NAME,
@@ -15,7 +15,7 @@ from coalescenceml.enums import LoggingLevels
 
 LOG_FILE = f"{APP_NAME}_logs.log"
 
-class CustomFormatter(logging.Fortmatter):
+class CustomFormatter(logging.Formatter):
     """Formats logs according to our specification"""
 
     grey: str = "\x1b[38;21m"
@@ -59,7 +59,7 @@ class CustomFormatter(logging.Fortmatter):
         )
 
         formatter = logging.Formatter(log_fmt)
-        formatted_record = formatter(log_record)
+        formatted_record = formatter.format(log_record)
         return formatted_record
 
 def get_logging_level() -> LoggingLevels:
@@ -74,7 +74,7 @@ def get_console_handler() -> Any:
     """Get console handler for logging"""
     from coalescenceml.constants import console
     console_handler = RichHandler(
-        show_path=False, omit_repeated_times=False, console, rich_tracebacks=True
+        show_path=False, omit_repeated_times=False, console=console, rich_tracebacks=True
     )
     console_handler.setFormatter(CustomFormatter())
     return console_handler
@@ -106,9 +106,11 @@ def get_logger(logger_name: str) -> logging.Logger:
     logger.propagate = False
     return logger
 
+def set_root_verbosity() -> None:
+    """set_root_verbosity _summary_
 
-def init_logging() -> None:
-    """Initialize logging with default configuration."""
+    _extended_summary_
+    """
     level = get_logging_level()
     if level == LoggingLevels.NOTSET:
         logging.getLogger().disabled = True
@@ -120,6 +122,11 @@ def init_logging() -> None:
         get_logger(__name__).debug(
             f"Logging set to level: {logging.getLevelName(level.value)}"
         )
+
+
+def init_logging() -> None:
+    """Initialize logging with default configuration."""
+    set_root_verbosity()
 
     muted_loggers = [
     ]

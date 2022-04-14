@@ -1,12 +1,16 @@
-from typing import Dict, NamedTuple, Optional, Type, cast
+from __future__ import annotations
+from typing import TYPE_CHECKING, Dict, NamedTuple, Optional, Type, cast
 
 from coalescenceml.step.exceptions import StepContextError
+from coalescenceml.step_operator.step_executor_operator import Directory
 from coalescenceml.directory import Directory
 
-from coalescenceml.artifacts.base_artifact import BaseArtifact
-from coalescenceml.producers.base_producer import BaseProducer
-from coalescenceml.metadata_store.base_metadata_store import BaseMetadataStore
-from coalescenceml.stack import Stack
+
+if TYPE_CHECKING:
+    from coalescenceml.artifacts.base_artifact import BaseArtifact
+    from coalescenceml.producers.base_producer import BaseProducer
+    from coalescenceml.metadata_store.base_metadata_store import BaseMetadataStore
+    from coalescenceml.stack import Stack
 
 
 class StepContextOutput(NamedTuple):

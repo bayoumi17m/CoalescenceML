@@ -38,14 +38,14 @@ from tfx.types.channel import Channel
 from tfx.utils import json_utils
 
 from coalescenceml.artifacts.base_artifact import BaseArtifact
-from coalescenceml.exceptions import MissingStepParameterError, StepInterfaceError
 from coalescenceml.io import fileio
 from coalescenceml.logger import get_logger
 from coalescenceml.producers.base_producer import BaseProducer
-from coalescenceml.steps.base_step_config import BaseStepConfig
-from coalescenceml.steps.step_context import StepContext
-from coalescenceml.steps.step_environment import StepEnvironment
-from coalescenceml.steps.step_output import Output
+from coalescenceml.step.base_step_config import BaseStepConfig
+from coalescenceml.step.exceptions import MissingStepParameterError, StepInterfaceError
+from coalescenceml.step.step_context import StepContext
+from coalescenceml.step.step_environment import StepEnvironment
+from coalescenceml.step.output import Output
 from coalescenceml.utils import source_utils
 
 logger = get_logger(__name__)

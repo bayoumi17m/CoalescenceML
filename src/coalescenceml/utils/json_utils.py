@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict
 
-import coalesenceml.io.utils
-from coalesenceml.io import fileio
+import coalescenceml.io.utils
+from coalescenceml.io import fileio
 
 
 def write_json(file_path: str, contents: Dict[str, Any]) -> None:

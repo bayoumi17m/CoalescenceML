@@ -272,7 +272,7 @@ def parse_unknown_options(args: List[str]) -> Dict[str, Any]:
     return r_args
 
 
-def install_package(package: str) -> None:
+def install_packages(package: str) -> None:
     """Installs pypi package into the current environment with pip.
 
     Args:

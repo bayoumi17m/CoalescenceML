@@ -95,7 +95,8 @@ def install(
         # no integrations specified, use all registered integrations
         integrations = set(integration_registry.integrations.keys())
         for i in ignore_integration:
-            integrations.remove(i)
+            try:
+                integrations.remove(i)
             except KeyError:
                 error(
                     f"Integration {i} does not exist. Available integrations: "
