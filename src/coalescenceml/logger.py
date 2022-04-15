@@ -133,3 +133,8 @@ def init_logging() -> None:
     for logger_name in muted_loggers:
         logging.getLogger(logger_name).setLevel(logging.WARNING)
         logging.getLogger(logger_name).disabled = True
+    
+    # ML-Metadata and ml-pipelines-sdk apparently use absl (which makes sense)
+    # BUT we want to hide their logging so we will try this.
+    from absl import logging as absl_logging
+    absl_logging.set_verbosity(-10)

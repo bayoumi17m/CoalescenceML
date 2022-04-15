@@ -3,8 +3,8 @@ from inspect import isclass
 from typing import Any, ClassVar, Dict, Tuple, Type, cast
 
 from coalescenceml.artifacts.base_artifact import BaseArtifact
-from coalescenceml.artifacts.type_registry import type_registry
-from coalescenceml.producers.producer_registry import producer_registry
+# from coalescenceml.artifacts.type_registry import type_registry
+# from coalescenceml.producers.producer_registry import producer_registry
 
 
 class BaseProducer(object):
@@ -14,36 +14,35 @@ class BaseProducer(object):
     TYPES: ClassVar[Tuple[Type[Any], ...]] = ()
 
     def __init__(self, artifact: BaseArtifact):
-        if not type(self, BaseProducer):
-            if not self.TYPES:
-                raise ValueError(
-                    f"Invalid producer. When defining producer, make sure to specify at least 1 type in the TYPES class variable."
-                )
+        # if not self.TYPES:
+        #     raise ValueError(
+        #         f"Invalid producer. When defining producer, make sure to specify at least 1 type in the TYPES class variable."
+        #     )
 
-            for artifact_type in self.ARTIFACT_TYPES:
-                if not (
-                    isclass(artifact_type)
-                    and issubclass(artifact_type, BaseArtifact)
-                ):
-                    raise ValueError(
-                        f"Associated artifact type {artifact_type} for producer is not a class or is not a subclass of BaseArtifact."
-                    )
-            
-            artifact_types = self.ARTIFACT_TYPES or (BaseArtifact,)
-            for t in self.TYPES:
-                if not isclass(t):
-                    raise ValueError(
-                        f"Associated type {t} for producer is not a class."
-                    )
+        # for artifact_type in self.ARTIFACT_TYPES:
+        #     if not (
+        #         isclass(artifact_type)
+        #         and issubclass(artifact_type, BaseArtifact)
+        #     ):
+        #         raise ValueError(
+        #             f"Associated artifact type {artifact_type} for producer is not a class or is not a subclass of BaseArtifact."
+        #         )
+        
+        # artifact_types = self.ARTIFACT_TYPES or (BaseArtifact,)
+        # for t in self.TYPES:
+        #     if not isclass(t):
+        #         raise ValueError(
+        #             f"Associated type {t} for producer is not a class."
+        #         )
 
-                producer_registry.register_producer(
-                    t, self,
-                )
-                type_registry.register_integration(
-                    t, artifact_types,
-                )
-            
-            self.artifact = artifact
+        #     producer_registry.register_producer(
+        #         t, self,
+        #     )
+        #     type_registry.register_artifact_type(
+        #         t, artifact_types,
+        #     )
+        
+        self.artifact = artifact
 
 
     def can_handle_type(self, data_type: Type[Any]) -> bool:

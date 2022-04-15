@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 from coalescenceml.artifacts import DataArtifact
 from coalescenceml.io import fileio
 from coalescenceml.producers.base_producer import BaseProducer
-from coalescenceml.producers.producer_registry import producer_registry
+from coalescenceml.producers.producer_registry import register_producer_class
 from coalescenceml.utils.json_utils import read_json, write_json
 
 
@@ -18,12 +18,12 @@ DATA_FILENAME = "data.parquet"
 SHAPE_FILENAME = "shape.json"
 DATA_VAR = "data_var"
 
-
+@register_producer_class
 class NumpyProducer(BaseProducer):
     """Producer to read data to and from numpy arrays."""
 
-    TYPES = (np.ndarray,)
     ARTIFACT_TYPES = (DataArtifact,)
+    TYPES = (np.ndarray,)
 
     def handle_input(self, data_type: Type[Any]) -> NDArray[Any]:
         """Reads numpy array from parquet file.
@@ -39,7 +39,7 @@ class NumpyProducer(BaseProducer):
         shape_dict = read_json(
             os.path.join(self.artifact.uri, SHAPE_FILENAME)
         )
-        shape_tuple = tuple(shape_dict.value())
+        shape_tuple = tuple(shape_dict.values())
 
         with fileio.open(
             os.path.join(self.artifact.uri, DATA_FILENAME), "rb"
@@ -68,8 +68,8 @@ class NumpyProducer(BaseProducer):
         with fileio.open(
             os.path.join(self.artifact.uri, DATA_FILENAME), "wb"
         ) as fp:
-            stream = pa.output_stream(f)
+            stream = pa.output_stream(fp)
             pq.write_table(pa_table, stream)
 
 
-producer_registry.register_producer(np.ndarray, NumpyProducer)
+# producer_registry.register_producer(np.ndarray, NumpyProducer)

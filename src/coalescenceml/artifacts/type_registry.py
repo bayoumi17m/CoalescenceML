@@ -2,10 +2,13 @@
 The below code is inspired by: https://pypi.org/project/type-registry/
 """
 
-from typing import Any, Dict, Iterable, Optional, Tuple, Type
+from __future__ import annotations
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Tuple, Type
 
 from coalescenceml.logger import get_logger
-from coalescenceml.artifacts.base_artifact import BaseArtifact
+
+if TYPE_CHECKING:
+    from coalescenceml.artifacts.base_artifact import BaseArtifact
 
 logger = get_logger(__name__)
 
@@ -24,8 +27,6 @@ class TypeRegistry(object):
     def get_artifact_type(self, key: Type[Any]) -> Tuple[Type[BaseArtifact], ...]:
         """
         """
-        print(key)
-        print(self._artifact_types.items())
         if key in self._artifact_types:
             return self._artifact_types[key]
         else:
@@ -44,8 +45,18 @@ class TypeRegistry(object):
                 print(len(artifact_types_for_superclasses))
                 raise RuntimeError("Too little")
 
-    def registry_artifact_type(self) -> None:
-        pass
+    def register_artifact_type(
+        self, key: Type[Any], type_: Iterable[Type[BaseArtifact]]
+    ) -> None:
+        """register_artifact_type _summary_
+
+        _extended_summary_
+
+        :param key: any type
+        :param type_: list of artifact type that the given datatypes is
+                associated with
+        """
+        self._artifact_types[key] = tuple(type_)
 
 # Create a global registry
 type_registry = TypeRegistry()

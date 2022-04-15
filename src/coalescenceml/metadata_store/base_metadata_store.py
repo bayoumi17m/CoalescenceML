@@ -42,21 +42,29 @@ class BaseMetadataStore(StackComponent, ABC):
     @property
     def store(self) -> metadata_store.MetadataStore:
         """General property that hooks into TFX metadata store."""
-        try:
-            # See if it exists
-            return self.mlmd_store
-        except AttributeError:
-            # Otherwise create it!
-            config = self.get_tfx_metadata_config()
-            mlmd_store = metadata_store.MetadataStore(
-                config,
-                enable_upgrade_migration=self.upgrade_migration_enabled
-                and isinstance(config, metadata_store_pb2.ConnectionConfig),
-            )
-            self.tfx_config = config
-            self.mlmd_store = mlmd_store
+        config = self.get_tfx_metadata_config()
+        mlmd_store = metadata_store.MetadataStore(
+            config,
+            enable_upgrade_migration=self.upgrade_migration_enabled
+            and isinstance(config, metadata_store_pb2.ConnectionConfig),
+        )
+        return mlmd_store
+        # TODO: fix the below so we can store the mlmd store....
+        # try:
+        #     # See if it exists
+        #     return self._mlmd_store
+        # except AttributeError:
+        #     # Otherwise create it!
+        #     config = self.get_tfx_metadata_config()
+        #     mlmd_store = metadata_store.MetadataStore(
+        #         config,
+        #         enable_upgrade_migration=self.upgrade_migration_enabled
+        #         and isinstance(config, metadata_store_pb2.ConnectionConfig),
+        #     )
+        #     self._tfx_config = config
+        #     self._mlmd_store = mlmd_store
 
-            return mlmd_store
+        #     return mlmd_store
 
     @property
     @abstractmethod

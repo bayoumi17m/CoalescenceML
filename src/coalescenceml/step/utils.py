@@ -6,7 +6,7 @@ https://github.com/tensorflow/tfx/blob/master/tfx/dsl/component/experimental/dec
 
 Modified to work with coalesenceml
 """
-
+from __future__ import annotations
 import inspect
 import json
 import sys

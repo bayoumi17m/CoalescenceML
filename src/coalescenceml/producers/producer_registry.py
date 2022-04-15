@@ -1,11 +1,14 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Dict, Type
+from inspect import isclass
+from typing import TYPE_CHECKING, Any, Dict, Type, TypeVar
 
 # Exception
 from coalescenceml.logger import get_logger
 
-if TYPE_CHECKING:
-    from coalescenceml.producers.base_producer import BaseProducer
+# if TYPE_CHECKING:
+from coalescenceml.artifacts.base_artifact import BaseArtifact
+from coalescenceml.producers.base_producer import BaseProducer
+from coalescenceml.artifacts.type_registry import type_registry
 
 
 logger = get_logger(__name__)
@@ -85,6 +88,38 @@ class ProducerRegistry(object):
 
         raise KeyError(f"No producer is registered for object type {object_type}. You can register a producer for specific types by subclassing `BaseProducer` and setting its `ASSOCIATED_TYPES` attribute.")
 
-
-
+C = TypeVar("C", bound=BaseProducer)
 producer_registry = ProducerRegistry()
+
+def register_producer_class(cls: Type[C]) -> Type[C]:
+    """Registers the producer class and returns it unmodified."""
+    if not cls.TYPES:
+        raise ValueError(
+            f"Invalid producer. When defining producer, make sure to specify at least 1 type in the TYPES class variable."
+        )
+
+    for artifact_type in cls.ARTIFACT_TYPES:
+        if not (
+            isclass(artifact_type)
+            and issubclass(artifact_type, BaseArtifact)
+        ):
+            raise ValueError(
+                f"Associated artifact type {artifact_type} for producer is not a class or is not a subclass of BaseArtifact."
+            )
+    
+    artifact_types = cls.ARTIFACT_TYPES or (BaseArtifact,)
+    for t in cls.TYPES:
+        if not isclass(t):
+            raise ValueError(
+                f"Associated type {t} for producer is not a class."
+            )
+
+        producer_registry.register_producer(
+            t, cls,
+        )
+        type_registry.register_artifact_type(
+            t, artifact_types,
+        )
+    
+    return cls
+

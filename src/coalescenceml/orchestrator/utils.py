@@ -5,6 +5,8 @@ import time
 import uuid
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, List, Optional, Tuple, cast
 
+from pydantic import BaseModel
+
 import tfx.orchestration.pipeline as tfx_pipeline
 from tfx.orchestration.portable import data_types, launcher
 from tfx.proto.orchestration.pipeline_pb2 import ContextSpec, PipelineNode

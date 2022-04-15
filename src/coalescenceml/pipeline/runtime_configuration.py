@@ -44,5 +44,5 @@ class RuntimeConfiguration(Dict[str, Any]):
     @property
     def schedule(self) -> Optional[Schedule]:
         """Schedule of the pipeline run."""
-
+        from coalescenceml.pipeline import Schedule
         return cast(Optional[Schedule], self[SCHEDULE_OPTION_KEY])
