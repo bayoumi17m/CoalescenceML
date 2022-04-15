@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import time
 import uuid
-from asyncio.log import logger
 from datetime import datetime
 from typing import (
     TYPE_CHECKING,
@@ -47,13 +46,13 @@ logger = get_logger(__name__)
 
 
 class Stack:
-    """CoalescenceML stack class
+    """CoalescenceML stack class.
 
     A CoalescenceML stack is a collection of multiple stack components that are
-    required to run CoalescenceML pipelines. Some of these components (orchestrator,
-    metadata store and artifact store) are required to run any kind of
-    pipeline, other components like the container registry are only required
-    if other stack components depend on them.
+    required to run CoalescenceML pipelines. Some of these components
+    (orchestrator, metadata store and artifact store) are required to run
+    any kind of pipeline, other components like the container registry are
+    only required if other stack components depend on them.
     """
 
     def __init__(
@@ -69,9 +68,15 @@ class Stack:
         # feature_store: Optional["BaseFeatureStore"] = None,
         # model_deployer: Optional["BaseModelDeployer"] = None,
     ):
-        """Initializes and validates a stack instance.
-        Raises:
-             StackValidationError: If the stack configuration is not valid.
+        """Initialize and validate a stack instance.
+
+        Args:
+            name: Name given to this stack
+            orchestrator: Orchestrator instance to be used in stack
+            metadata_store: Metadata store instance to be used in stack
+            artifact_store: Artifact store instance to be used in stack
+            container_registry: Container registry instance to be used in stack
+            step_operator: Step operator instance to be used in stack
         """
         self._name = name
         self._orchestrator = orchestrator
@@ -83,19 +88,20 @@ class Stack:
         self._feature_store = None  # feature_store
         self._model_deployer = None  # model_deployer
 
+        self.validate()
+
     @classmethod
     def from_components(
         cls, name: str, components: Dict[StackComponentFlavor, StackComponent]
     ) -> "Stack":
-        """Creates a stack instance from a dict of stack components.
+        """Create a stack instance from a dict of stack components.
+
         Args:
             name: The name of the stack.
             components: The components of the stack.
+
         Returns:
             A stack instance consisting of the given components.
-        Raises:
-            TypeError: If a required component is missing or a component
-                doesn't inherit from the expected base class.
         """
         from coalescenceml.artifact_store import BaseArtifactStore
         from coalescenceml.container_registry import BaseContainerRegistry
@@ -112,7 +118,15 @@ class Stack:
         def _raise_type_error(
             component: Optional[StackComponent], expected_class: Type[Any]
         ) -> NoReturn:
-            """Raises a TypeError that the component has an unexpected type."""
+            """Raise a TypeError that the component has an unexpected type.
+
+            Args:
+                component: StackComponent that has the wrong type
+                expected_class: Type of StackComponent that was expected
+
+            Raises:
+                TypeError: Always!
+            """
             raise TypeError(
                 f"Unable to create stack: Wrong stack component type "
                 f"`{component.__class__.__name__}` (expected: subclass "
@@ -139,7 +153,9 @@ class Stack:
         ):
             _raise_type_error(container_registry, BaseContainerRegistry)
 
-        # secrets_manager = components.get(StackComponentFlavor.SECRETS_MANAGER)
+        # secrets_manager = components.get(
+        #     StackComponentFlavor.SECRETS_MANAGER
+        # )
         # if secrets_manager is not None and not isinstance(
         #     secrets_manager, BaseSecretsManager
         # ):
@@ -177,7 +193,11 @@ class Stack:
 
     @classmethod
     def default_local_stack(cls) -> Stack:
-        """Creates a stack instance which is configured to run locally."""
+        """Create a stack instance which is configured to run locally.
+
+        Returns:
+            Default setup for a local stack
+        """
         from coalescenceml.artifact_store import LocalArtifactStore
         from coalescenceml.metadata_store import SQLiteMetadataStore
         from coalescenceml.orchestrator import LocalOrchestrator
@@ -211,7 +231,11 @@ class Stack:
 
     @property
     def components(self) -> Dict[StackComponentFlavor, StackComponent]:
-        """All components of the stack."""
+        """Fetch all components of the stack.
+
+        Returns:
+            All set components of stack
+        """
         return {
             component.TYPE: component
             for component in [
@@ -229,27 +253,47 @@ class Stack:
 
     @property
     def name(self) -> str:
-        """The name of the stack."""
+        """Fetch name of the stack.
+
+        Returns:
+            name within stack
+        """
         return self._name
 
     @property
     def orchestrator(self) -> "BaseOrchestrator":
-        """The orchestrator of the stack."""
+        """Fetch orchestrator of the stack.
+
+        Returns:
+            orchestrator within stack
+        """
         return self._orchestrator
 
     @property
     def metadata_store(self) -> "BaseMetadataStore":
-        """The metadata store of the stack."""
+        """Fetch metadata store of the stack.
+
+        Returns:
+            metadata store within stack
+        """
         return self._metadata_store
 
     @property
     def artifact_store(self) -> "BaseArtifactStore":
-        """The artifact store of the stack."""
+        """Fetch artifact store of the stack.
+
+        Returns:
+            artifact store within stack
+        """
         return self._artifact_store
 
     @property
     def container_registry(self) -> Optional["BaseContainerRegistry"]:
-        """The container registry of the stack."""
+        """Fetch container registry of the stack.
+
+        Returns:
+            container registry within stack
+        """
         return self._container_registry
 
     # @property
@@ -259,7 +303,11 @@ class Stack:
 
     @property
     def step_operator(self) -> Optional["BaseStepOperator"]:
-        """The step operator of the stack."""
+        """Fetch step operator of the stack.
+
+        Returns:
+            step operator within stack
+        """
         return self._step_operator
 
     # @property
@@ -275,9 +323,13 @@ class Stack:
     @property
     def runtime_options(self) -> Dict[str, Any]:
         """Runtime options that are available to configure this stack.
+
         This method combines the available runtime options for all components
         of this stack. See `StackComponent.runtime_options()` for
         more information.
+
+        Returns:
+            All configurable runtime options
         """
         runtime_options: Dict[str, Any] = {}
         for component in self.components.values():
@@ -294,8 +346,12 @@ class Stack:
 
         return runtime_options
 
-    def dict(self) -> Dict[str, str]:
-        """Converts the stack into a dictionary."""
+    def dict(self) -> Dict[str, Any]:
+        """Convert the stack into a dictionary.
+
+        Returns:
+            Stack in dictionary form
+        """
         component_dict = {
             component_type.value: component.json(sort_keys=True)
             for component_type, component in self.components.items()
@@ -307,12 +363,17 @@ class Stack:
         self,
         exclude_components: Optional[AbstractSet[StackComponentFlavor]] = None,
     ) -> Set[str]:
-        """Set of PyPI requirements for the stack.
+        """Collect set of PyPI requirements for the stack.
+
         This method combines the requirements of all stack components (except
         the ones specified in `exclude_components`).
+
         Args:
             exclude_components: Set of component types for which the
                 requirements should not be included in the output.
+
+        Returns:
+            Set of PyPI requirments for stack
         """
         exclude_components = exclude_components or set()
         requirements = [
@@ -323,17 +384,15 @@ class Stack:
         return set.union(*requirements) if requirements else set()
 
     def validate(self) -> None:
-        """Checks whether the stack configuration is valid.
+        """Check whether the stack configuration is valid.
+
         To check if a stack configuration is valid, the following criteria must
         be met:
         - all components must support the execution mode (either local or
          remote execution) specified by the orchestrator of the stack
         - the `StackValidator` of each stack component has to validate the
          stack to make sure all the components are compatible with each other
-        Raises:
-             StackValidationError: If the stack configuration is not valid.
         """
-
         for component in self.components.values():
             if component.validator:
                 component.validator.validate(stack=self)
@@ -343,11 +402,13 @@ class Stack:
         pipeline: BasePipeline,
         runtime_configuration: RuntimeConfiguration,
     ) -> Any:
-        """Deploys a pipeline on this stack.
+        """Deploy a pipeline on this stack.
+
         Args:
             pipeline: The pipeline to deploy.
             runtime_configuration: Contains all the runtime configuration
                 options specified for the pipeline run.
+
         Returns:
             The return value of the call to `orchestrator.run_pipeline(...)`.
         """
@@ -408,24 +469,28 @@ class Stack:
 
     @property
     def is_provisioned(self) -> bool:
-        """If the stack provisioned resources to run locally."""
+        """If the stack provisioned resources to run locally.
+
+        Returns:
+            True if stack is provisioned to run locally
+        """
         return all(
             component.is_provisioned for component in self.components.values()
         )
 
     @property
     def is_running(self) -> bool:
-        """If the stack is running locally."""
+        """If the stack is running locally.
+
+        Returns:
+            Whether stack is running
+        """
         return all(
             component.is_running for component in self.components.values()
         )
 
     def provision(self) -> None:
-        """Provisions resources to run the stack locally.
-        Raises:
-            NotImplementedError: If any unprovisioned component does not
-                implement provisioning.
-        """
+        """Provisions resources to run the stack locally."""
         logger.info("Provisioning resources for stack '%s'.", self.name)
         for component in self.components.values():
             if not component.is_provisioned:
@@ -433,11 +498,7 @@ class Stack:
                 logger.info("Provisioned resources for %s.", component)
 
     def deprovision(self) -> None:
-        """Deprovisions all local resources of the stack.
-        Raises:
-            NotImplementedError: If any provisioned component does not
-                implement deprovisioning.
-        """
+        """Deprovisions all local resources of the stack."""
         logger.info("Deprovisioning resources for stack '%s'.", self.name)
         for component in self.components.values():
             if component.is_provisioned:
@@ -448,7 +509,8 @@ class Stack:
                     logger.warning(e)
 
     def resume(self) -> None:
-        """Resumes the provisioned local resources of the stack.
+        """Resume the provisioned local resources of the stack.
+
         Raises:
             ProvisioningError: If any stack component is missing provisioned
                 resources.
