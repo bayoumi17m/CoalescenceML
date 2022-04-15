@@ -156,7 +156,7 @@ def register_stack(
             name=stack_name, components=stack_components
         )
         dir_.register_stack(stack_)
-        cli_utils.declare(f"Stack '{stack_name}' successfully registered!")
+        cli_utils.info(f"Stack '{stack_name}' successfully registered!")
 
 
 @stack.command("list")
@@ -256,7 +256,7 @@ def delete_stack(stack_name: str) -> None:
             return
 
         Directory().deregister_stack(stack_name)
-        cli_utils.declare(f"Deleted stack '{stack_name}'.")
+        cli_utils.info(f"Deleted stack '{stack_name}'.")
 
 
 @stack.command("set")
@@ -288,7 +288,7 @@ def set_active_stack(stack_name: str, global_profile: bool = False) -> None:
         else:
             dir_.activate_stack(stack_name)
 
-        cli_utils.declare(f"Active{scope} stack set to: '{stack_name}'")
+        cli_utils.info(f"Active{scope} stack set to: '{stack_name}'")
 
 
 @stack.command("get")
@@ -299,7 +299,7 @@ def get_active_stack() -> None:
     with console.status("Getting the active stack..."):
 
         dir_ = Directory()
-        cli_utils.declare(f"The active stack is: '{dir_.active_stack_name}'")
+        cli_utils.info(f"The active stack is: '{dir_.active_stack_name}'")
 
 
 @stack.command("up")
@@ -308,7 +308,7 @@ def up_stack() -> None:
     cli_utils.print_active_profile()
 
     stack_ = Directory().active_stack
-    cli_utils.declare(
+    cli_utils.info(
         f"Provisioning resources for active stack '{stack_.name}'."
     )
     try:
@@ -332,12 +332,12 @@ def down_stack(force: bool = False) -> None:
     stack_ = Directory().active_stack
 
     if force:
-        cli_utils.declare(
+        cli_utils.info(
             f"Deprovisioning resources for active stack '{stack_.name}'."
         )
         stack_.deprovision()
     else:
-        cli_utils.declare(
+        cli_utils.info(
             f"Suspending resources for active stack '{stack_.name}'."
         )
         stack_.suspend()

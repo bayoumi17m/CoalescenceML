@@ -120,7 +120,7 @@ whitelist_externals = poetry
 commands = 
     poetry install -v
     poetry run pytest tests
-    poetry run bash scripts/mypy.sh
+    poetry run bash scripts/mypy.sh --install-types
 """
 
 [tool.pytest.ini_options]
@@ -158,8 +158,22 @@ strict = true
 namespace_packages = true
 show_error_codes = true
 
+# import all tfx.proto.* and google files as `Any`
 [[tool.mypy.overrides]]
-module = []
+module = [
+    "tfx.proto.*",
+]
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = [
+    "pyarrow.*",
+    "pandas.*",
+    "ml_metadata.*",
+    "distro.*",
+    "absl.*",
+    "numpy.*",
+]
 ignore_missing_imports = true
 
 [tool.black]

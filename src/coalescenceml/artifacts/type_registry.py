@@ -42,7 +42,6 @@ class TypeRegistry(object):
             elif len(artifact_types_for_superclasses) > 1:
                 raise RuntimeError("Too many")
             else:
-                print(len(artifact_types_for_superclasses))
                 raise RuntimeError("Too little")
 
     def register_artifact_type(

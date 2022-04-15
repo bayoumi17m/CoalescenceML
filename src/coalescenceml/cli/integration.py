@@ -1,6 +1,7 @@
 from typing import Optional, Tuple
 
 import click
+from rich.markdown import Markdown
 from rich.progress import track
 
 from coalescenceml.cli.cli import cli
@@ -31,7 +32,7 @@ def integration() -> None:
 def list_integrations() -> None:
     """List all available integrations with their installation status."""
     formatted_table = format_integration_list(
-        list(integration_registry.integrations.items())
+        [x for x in integration_registry.integrations.items()]
     )
     print_table(formatted_table)
     warning(
@@ -57,7 +58,7 @@ def get_requirements(integration_name: Optional[str] = None) -> None:
             title(
                 f'Requirements for {integration_name or "all integrations"}:\n'
             )
-            declare(f"{requirements}")
+            info(f"{requirements}")
             warning(
                 "\n" + "To install the dependencies of a "
                 "specific integration, type: "

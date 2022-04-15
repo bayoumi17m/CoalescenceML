@@ -1,4 +1,6 @@
 import os
+from typing import Optional
+
 from rich.console import Console
 from rich.theme import Theme
 
@@ -69,3 +71,4 @@ LOCAL_STORES_DIRECTORY_NAME = "local_stores"
 
 # SPECIAL KEYS
 RUN_NAME_OPTION_KEY = "run_name"
+USER_MAIN_MODULE: Optional[str] = None

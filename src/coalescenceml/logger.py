@@ -1,7 +1,7 @@
 import logging
 import sys
 from logging.handlers import TimedRotatingFileHandler
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from rich.logging import RichHandler
 from rich.traceback import install as rich_tb_install
@@ -128,7 +128,7 @@ def init_logging() -> None:
     """Initialize logging with default configuration."""
     set_root_verbosity()
 
-    muted_loggers = [
+    muted_loggers: List[str] = [
     ]
     for logger_name in muted_loggers:
         logging.getLogger(logger_name).setLevel(logging.WARNING)

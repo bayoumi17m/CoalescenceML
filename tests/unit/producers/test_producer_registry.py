@@ -4,7 +4,7 @@ import pytest
 
 from coalescenceml.step.exceptions import StepInterfaceError
 from coalescenceml.producers.base_producer import BaseProducer
-from coalescenceml.steps import step
+from coalescenceml.step import step
 
 
 def test_producer_with_subclassing_parameter():
@@ -51,10 +51,10 @@ def test_producer_with_parameter_with_more_than_one_conflicting_baseclass():
         pass
 
     class MyFirstProducer(BaseProducer):
-        ASSOCIATED_TYPES = (MyFirstType,)
+        TYPES = (MyFirstType,)
 
     class MySecondProducer(BaseProducer):
-        ASSOCIATED_TYPES = (MySecondType,)
+        TYPES = (MySecondType,)
 
     class MyConflictingType(MyFirstType, MySecondType):
         pass
@@ -79,10 +79,10 @@ def test_producer_with_conflicting_parameter_and_explicit_producer():
         pass
 
     class MyFirstProducer(BaseProducer):
-        ASSOCIATED_TYPES = (MyFirstType,)
+        TYPES = (MyFirstType,)
 
     class MySecondProducer(BaseProducer):
-        ASSOCIATED_TYPES = (MySecondType,)
+        TYPES = (MySecondType,)
 
     class MyConflictingType(MyFirstType, MySecondType):
         pass
@@ -92,4 +92,4 @@ def test_producer_with_conflicting_parameter_and_explicit_producer():
         return MyConflictingType()
 
     with does_not_raise():
-        some_step().with_return_producers(MyFirstProducer)()
+        (some_step.with_return_producers(some_step, MyFirstProducer))()

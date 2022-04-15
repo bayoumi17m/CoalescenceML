@@ -18,7 +18,7 @@ from coalescenceml.integrations.registry import integration_registry
 from coalescenceml.io import fileio
 from coalescenceml.step import BaseStep
 from coalescenceml.step.utils import _FunctionExecutor, generate_component_class
-from coalescenceml.utils import source_utils, yaml_utils
+from coalescenceml.utils import source_utils, json_utils
 
 
 def create_executor_class(
@@ -36,7 +36,7 @@ def create_executor_class(
     )
     step_instance = step_class()
 
-    materializers = step_instance.get_materializers(ensure_complete=True)
+    producers = step_instance.get_producers(ensure_complete=True)
 
     # We don't publish anything to the metadata store inside this environment,
     # so the specific artifact classes don't matter
@@ -60,7 +60,7 @@ def create_executor_class(
         output_spec=output_spec,
         execution_parameter_names=set(execution_parameters),
         step_function=step_instance.entrypoint,
-        materializers=materializers,
+        producers=producers,
     )
 
     return cast(
@@ -119,11 +119,11 @@ def main(
     logging.getLogger().setLevel(logging.INFO)
 
     # activate integrations and import the user main module to register all
-    # materializers and stack components
+    # producers and stack components
     integration_registry.activate_integrations()
     importlib.import_module(main_module)
 
-    input_artifact_type_mapping = yaml_utils.read_json(
+    input_artifact_type_mapping = json_utils.read_json(
         input_artifact_types_path
     )
     executor_class = create_executor_class(

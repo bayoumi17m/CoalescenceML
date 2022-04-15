@@ -44,7 +44,7 @@ def init(path: Optional[Path]) -> None:
         f"root, or from a subdirectory."
     )
 
-
+# TODO: Make this actually clean the stuff LMAO.
 @cli.command("clean")
 @click.option("--yes", "-y", type=click.BOOL, default=False)
 def clean(yes: bool = False) -> None:

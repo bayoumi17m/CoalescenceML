@@ -7,6 +7,7 @@ from coalescenceml.logger import get_logger
 
 # if TYPE_CHECKING:
 from coalescenceml.artifacts.base_artifact import BaseArtifact
+from coalescenceml.producers.exceptions import ProducerInterfaceError
 from coalescenceml.producers.base_producer import BaseProducer
 from coalescenceml.artifacts.type_registry import type_registry
 
@@ -94,7 +95,7 @@ producer_registry = ProducerRegistry()
 def register_producer_class(cls: Type[C]) -> Type[C]:
     """Registers the producer class and returns it unmodified."""
     if not cls.TYPES:
-        raise ValueError(
+        raise ProducerInterfaceError(
             f"Invalid producer. When defining producer, make sure to specify at least 1 type in the TYPES class variable."
         )
 
@@ -103,14 +104,14 @@ def register_producer_class(cls: Type[C]) -> Type[C]:
             isclass(artifact_type)
             and issubclass(artifact_type, BaseArtifact)
         ):
-            raise ValueError(
+            raise ProducerInterfaceError(
                 f"Associated artifact type {artifact_type} for producer is not a class or is not a subclass of BaseArtifact."
             )
     
     artifact_types = cls.ARTIFACT_TYPES or (BaseArtifact,)
     for t in cls.TYPES:
         if not isclass(t):
-            raise ValueError(
+            raise ProducerInterfaceError(
                 f"Associated type {t} for producer is not a class."
             )
 

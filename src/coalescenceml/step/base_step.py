@@ -201,8 +201,8 @@ class BaseStep(metaclass=BaseStepMeta):
             `StepContext` object during execution.
     """
 
-    INPUT_SIGNATURE: ClassVar[Dict[str, Type[Any]]] = None  # type: ignore[assignment] # noqa
-    OUTPUT_SIGNATURE: ClassVar[Dict[str, Type[Any]]] = None  # type: ignore[assignment] # noqa
+    INPUT_SIGNATURE: ClassVar[Dict[str, Type[Any]]] = None
+    OUTPUT_SIGNATURE: ClassVar[Dict[str, Type[Any]]] = None
     CONFIG_PARAMETER_NAME: ClassVar[Optional[str]] = None
     CONFIG_CLASS: ClassVar[Optional[Type[BaseStepConfig]]] = None
     CONTEXT_PARAMETER_NAME: ClassVar[Optional[str]] = None

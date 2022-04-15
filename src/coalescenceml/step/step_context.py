@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, NamedTuple, Optional, Type, cast
 
 from coalescenceml.step.exceptions import StepContextError
-from coalescenceml.step_operator.step_executor_operator import Directory
 from coalescenceml.directory import Directory
 
 

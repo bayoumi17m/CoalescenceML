@@ -28,7 +28,7 @@ class CoalescenceStack(SQLModel, table=True):
 
 
 class CoalescenceStackComponent(SQLModel, table=True):
-    component_flavor: StackComponentFlavor = Field(primary_key=True)
+    component_type: StackComponentFlavor = Field(primary_key=True)
     name: str = Field(primary_key=True)
     component_flavor: str
     configuration: bytes  # e.g. base64 encoded json string
@@ -176,7 +176,7 @@ class SqlStackStore(BaseStackStore):
                 select(CoalescenceStackDefinition, CoalescenceStackComponent)
                 .where(
                     CoalescenceStackDefinition.component_flavor
-                    == CoalescenceStackComponent.component_flavor
+                    == CoalescenceStackComponent.component_type
                 )
                 .where(
                     CoalescenceStackDefinition.component_name == CoalescenceStackComponent.name
@@ -215,7 +215,7 @@ class SqlStackStore(BaseStackStore):
             existing_component = session.exec(
                 select(CoalescenceStackComponent)
                 .where(CoalescenceStackComponent.name == component.name)
-                .where(CoalescenceStackComponent.component_flavor == component.type)
+                .where(CoalescenceStackComponent.component_type == component.type)
             ).first()
             if existing_component is not None:
                 raise StackComponentExistsError(
@@ -302,7 +302,7 @@ class SqlStackStore(BaseStackStore):
         with Session(self.engine) as session:
             component = session.exec(
                 select(CoalescenceStackComponent)
-                .where(CoalescenceStackComponent.component_flavor == component_flavor)
+                .where(CoalescenceStackComponent.component_type == component_flavor)
                 .where(CoalescenceStackComponent.name == name)
             ).one_or_none()
             if component is None:
@@ -325,7 +325,7 @@ class SqlStackStore(BaseStackStore):
         """
         with Session(self.engine) as session:
             statement = select(CoalescenceStackComponent).where(
-                CoalescenceStackComponent.component_flavor == component_flavor
+                CoalescenceStackComponent.component_type == component_flavor
             )
             return [component.name for component in session.exec(statement)]
 
@@ -344,7 +344,7 @@ class SqlStackStore(BaseStackStore):
         with Session(self.engine) as session:
             component = session.exec(
                 select(CoalescenceStackComponent)
-                .where(CoalescenceStackComponent.component_flavor == component_flavor)
+                .where(CoalescenceStackComponent.component_type == component_flavor)
                 .where(CoalescenceStackComponent.name == name)
             ).first()
             if component is not None:

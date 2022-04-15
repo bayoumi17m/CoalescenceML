@@ -11,7 +11,7 @@ from coalescenceml.logger import get_logger
 from coalescenceml.constants import console, IS_DEBUG_ENV
 from coalescenceml.directory import Directory
 from coalescenceml.enums import StackComponentFlavor
-from coalescenceml.integrations.integration import Integration
+from coalescenceml.integrations.integration import IntegrationMeta
 from coalescenceml.stack import StackComponent
 
 
@@ -98,18 +98,18 @@ def print_table(tab: List[Dict[str, Any]]) -> None:
 
 
 def format_integration_list(
-    integrations: List[Tuple[str, Integration]]
+    integrations: List[Tuple[str, IntegrationMeta]]
 ) -> List[Dict[str, str]]:
     """Formats a list of integrations into a List of Dicts."""
     
     list_of_dicts = []
     for name, integration_impl in integrations:
-        is_installed = integration_impl.check_installation()
+        is_installed = integration_impl.check_installation() # type: ignore[attr-defined]
         list_of_dicts.append(
             {
                 "INSTALLED": ":white_check_mark:" if is_installed else "",
                 "INTEGRATION": name,
-                "REQUIRED_PACKAGES": ", ".join(integration_impl.REQUIREMENTS),
+                "REQUIRED_PACKAGES": ", ".join(integration_impl.REQUIREMENTS), # type: ignore[attr-defined]
             }
         )
     return list_of_dicts
@@ -272,7 +272,7 @@ def parse_unknown_options(args: List[str]) -> Dict[str, Any]:
     return r_args
 
 
-def install_packages(package: str) -> None:
+def install_packages(packages: List[str]) -> None:
     """Installs pypi package into the current environment with pip.
 
     Args:
@@ -282,7 +282,7 @@ def install_packages(package: str) -> None:
     # manager so that we don't create conflicts?
     # IF we enforce the usage of `poetry` then this is do-able.
     # subprocess.check_call(["poetry", "add", package])
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+    subprocess.check_call([sys.executable, "-m", "pip", "install"] + packages)
 
 
 def uninstall_package(package: str) -> None:

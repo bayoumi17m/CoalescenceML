@@ -76,6 +76,8 @@ class BasePipelineMeta(type):
         return cls
 
 
+T = TypeVar('T', bound="BasePipeline")
+
 class BasePipeline(metaclass=BasePipelineMeta):
     """Abstract base class for all CoML pipelines.
     Attributes:
