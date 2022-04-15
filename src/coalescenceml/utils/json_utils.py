@@ -22,9 +22,7 @@ def write_json(file_path: str, contents: Dict[str, Any]) -> None:
             # If it doesn't exist, then raise exception
             raise FileNotFoundError(f"Directory '{directory}' does not exist")
 
-    utils.write_file_contents_as_string(
-        file_path, json.dumps(contents)
-    )
+    utils.write_file_contents_as_string(file_path, json.dumps(contents))
 
 
 def read_json(file_path: str) -> Dict[str, Any]:
@@ -44,4 +42,3 @@ def read_json(file_path: str) -> Dict[str, Any]:
         return json.loads(contents)
     else:
         raise FileNotFoundError(f"File '{file_path}' does not exist")
-

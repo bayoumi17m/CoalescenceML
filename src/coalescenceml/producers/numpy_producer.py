@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import os
 from typing import Any, Type
 
@@ -18,6 +19,7 @@ DATA_FILENAME = "data.parquet"
 SHAPE_FILENAME = "shape.json"
 DATA_VAR = "data_var"
 
+
 @register_producer_class
 class NumpyProducer(BaseProducer):
     """Producer to read data to and from numpy arrays."""
@@ -36,9 +38,7 @@ class NumpyProducer(BaseProducer):
         """
         super().handle_input(data_type)
 
-        shape_dict = read_json(
-            os.path.join(self.artifact.uri, SHAPE_FILENAME)
-        )
+        shape_dict = read_json(os.path.join(self.artifact.uri, SHAPE_FILENAME))
         shape_tuple = tuple(shape_dict.values())
 
         with fileio.open(
@@ -50,7 +50,6 @@ class NumpyProducer(BaseProducer):
         vals = getattr(data.to_pandas(), DATA_VAR).values
         return np.reshape(vals, shape_tuple)
 
-
     def handle_return(self, arr: NDarray[Any]) -> None:
         """Writes a np.ndarray to artifact store as parquet.
 
@@ -61,7 +60,7 @@ class NumpyProducer(BaseProducer):
 
         write_json(
             os.path.join(self.artifact.uri, SHAPE_FILENAME),
-            {str(i): d for i, d in enumerate(arr.shape)}
+            {str(i): d for i, d in enumerate(arr.shape)},
         )
 
         pa_table = pa.table({DATA_VAR: arr.flatten()})

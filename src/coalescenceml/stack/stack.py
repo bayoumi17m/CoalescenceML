@@ -1,8 +1,9 @@
 from __future__ import annotations
-from asyncio.log import logger
+
 import os
 import time
 import uuid
+from asyncio.log import logger
 from datetime import datetime
 from typing import (
     TYPE_CHECKING,
@@ -18,20 +19,26 @@ from typing import (
 from coalescenceml.config.global_config import GlobalConfiguration
 from coalescenceml.constants import RUN_NAME_OPTION_KEY
 from coalescenceml.enums import StackComponentFlavor
-from coalescenceml.stack.exceptions import ProvisioningError
 from coalescenceml.io import utils
 from coalescenceml.logger import get_logger
+from coalescenceml.stack.exceptions import ProvisioningError
 from coalescenceml.utils import readability_utils
+
 
 if TYPE_CHECKING:
     from coalescenceml.artifact_store import BaseArtifactStore
     from coalescenceml.container_registry import BaseContainerRegistry
+
     # from coalescenceml.feature_store import BaseFeatureStore
     from coalescenceml.metadata_store import BaseMetadataStore
+
     # from coalescenceml.model_deployer import BaseModelDeployer
     from coalescenceml.orchestrator import BaseOrchestrator
     from coalescenceml.pipeline import BasePipeline
-    from coalescenceml.pipeline.runtime_configuration import RuntimeConfiguration
+    from coalescenceml.pipeline.runtime_configuration import (
+        RuntimeConfiguration,
+    )
+
     # from coalescenceml.secrets_manager import BaseSecretsManager
     from coalescenceml.stack import StackComponent
     from coalescenceml.step_operator import BaseStepOperator
@@ -40,7 +47,7 @@ logger = get_logger(__name__)
 
 
 class Stack:
-    """ CoalescenceML stack class
+    """CoalescenceML stack class
 
     A CoalescenceML stack is a collection of multiple stack components that are
     required to run CoalescenceML pipelines. Some of these components (orchestrator,
@@ -48,6 +55,7 @@ class Stack:
     pipeline, other components like the container registry are only required
     if other stack components depend on them.
     """
+
     def __init__(
         self,
         name: str,
@@ -71,13 +79,13 @@ class Stack:
         self._artifact_store = artifact_store
         self._container_registry = container_registry
         self._step_operator = step_operator
-        self._secrets_manager = None #secrets_manager
-        self._feature_store = None #feature_store
-        self._model_deployer = None #model_deployer
-    
+        self._secrets_manager = None  # secrets_manager
+        self._feature_store = None  # feature_store
+        self._model_deployer = None  # model_deployer
+
     @classmethod
     def from_components(
-        cls, name: str, components: Dict[StackComponentFlavor, "StackComponent"]
+        cls, name: str, components: Dict[StackComponentFlavor, StackComponent]
     ) -> "Stack":
         """Creates a stack instance from a dict of stack components.
         Args:
@@ -91,10 +99,13 @@ class Stack:
         """
         from coalescenceml.artifact_store import BaseArtifactStore
         from coalescenceml.container_registry import BaseContainerRegistry
+
         # from coalescenceml.feature_store import BaseFeatureStore
         from coalescenceml.metadata_store import BaseMetadataStore
+
         # from coalescenceml.model_deployer import BaseModelDeployer
         from coalescenceml.orchestrator import BaseOrchestrator
+
         # from coalescenceml.secrets_manager import BaseSecretsManager
         from coalescenceml.step_operator import BaseStepOperator
 
@@ -128,25 +139,25 @@ class Stack:
         ):
             _raise_type_error(container_registry, BaseContainerRegistry)
 
-        secrets_manager = components.get(StackComponentFlavor.SECRETS_MANAGER)
+        # secrets_manager = components.get(StackComponentFlavor.SECRETS_MANAGER)
         # if secrets_manager is not None and not isinstance(
         #     secrets_manager, BaseSecretsManager
         # ):
         #     _raise_type_error(secrets_manager, BaseSecretsManager)
 
         step_operator = components.get(StackComponentFlavor.STEP_OPERATOR)
-        # if step_operator is not None and not isinstance(
-        #     step_operator, BaseStepOperator
-        # ):
-        #     _raise_type_error(step_operator, BaseStepOperator)
+        if step_operator is not None and not isinstance(
+            step_operator, BaseStepOperator
+        ):
+            _raise_type_error(step_operator, BaseStepOperator)
 
-        feature_store = components.get(StackComponentFlavor.FEATURE_STORE)
+        # feature_store = components.get(StackComponentFlavor.FEATURE_STORE)
         # if feature_store is not None and not isinstance(
         #     feature_store, BaseFeatureStore
         # ):
         #     _raise_type_error(feature_store, BaseFeatureStore)
 
-        model_deployer = components.get(StackComponentFlavor.MODEL_DEPLOYER)
+        # model_deployer = components.get(StackComponentFlavor.MODEL_DEPLOYER)
         # if model_deployer is not None and not isinstance(
         #     model_deployer, BaseModelDeployer
         # ):
@@ -329,7 +340,7 @@ class Stack:
 
     def deploy_pipeline(
         self,
-        pipeline: "BasePipeline",
+        pipeline: BasePipeline,
         runtime_configuration: RuntimeConfiguration,
     ) -> Any:
         """Deploys a pipeline on this stack.

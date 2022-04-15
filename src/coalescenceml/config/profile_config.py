@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import os
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -9,6 +10,7 @@ from coalescenceml.constants import ENV_COML_DEFAULT_STORE_TYPE
 from coalescenceml.enums import DirectoryStoreFlavor
 from coalescenceml.io import fileio
 from coalescenceml.logger import get_logger
+
 
 if TYPE_CHECKING:
     from coalescenceml.config.global_config import GlobalConfiguration
@@ -49,7 +51,9 @@ class ProfileConfiguration(BaseModel):
 
     name: str
     store_url: Optional[str]
-    store_type: DirectoryStoreFlavor = Field(default_factory=get_default_store_type)
+    store_type: DirectoryStoreFlavor = Field(
+        default_factory=get_default_store_type
+    )
     active_stack: Optional[str]
     _config: Optional["GlobalConfiguration"]
 

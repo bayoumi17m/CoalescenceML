@@ -15,7 +15,7 @@ class SingletonMetaClass(type):
     class BorgSingleton(metaclass=SingletonMetaClass):
         def __init__(self, shared_var):
             self._shared_var = shared_var
-        
+
         @property
         def shared_var(self):
             return self._shared_var

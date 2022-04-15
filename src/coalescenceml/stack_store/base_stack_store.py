@@ -5,11 +5,15 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-from coalescenceml.enums import StackComponentFlavor, DirectoryStoreFlavor
-from coalescenceml.stack.exceptions import StackComponentExistsError, StackExistsError
+from coalescenceml.enums import DirectoryStoreFlavor, StackComponentFlavor
 from coalescenceml.logger import get_logger
 from coalescenceml.stack import Stack
+from coalescenceml.stack.exceptions import (
+    StackComponentExistsError,
+    StackExistsError,
+)
 from coalescenceml.stack_store.model import StackComponentWrapper, StackWrapper
+
 
 logger = get_logger(__name__)
 
@@ -107,7 +111,9 @@ class BaseStackStore(ABC):
 
     @property
     @abstractmethod
-    def stack_configurations(self) -> Dict[str, Dict[StackComponentFlavor, str]]:
+    def stack_configurations(
+        self,
+    ) -> Dict[str, Dict[StackComponentFlavor, str]]:
         """Configurations for all stacks registered in this stack store.
         Returns:
             Dictionary mapping stack names to Dict[StackComponentFlavor, str]'s
@@ -291,7 +297,9 @@ class BaseStackStore(ABC):
             A list of StackComponentConfiguration instances.
         """
         return [
-            self.get_stack_component(component_flavor=component_flavor, name=name)
+            self.get_stack_component(
+                component_flavor=component_flavor, name=name
+            )
             for name in self._get_stack_component_names(component_flavor)
         ]
 

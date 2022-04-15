@@ -1,5 +1,6 @@
 from coalescenceml.environment import BaseEnvironmentComponent
 
+
 STEP_ENVIRONMENT_NAME = "step_environment"
 
 

@@ -7,10 +7,14 @@ Steps can be subclassed from the `BaseStep` class, or used via our `@step` decor
 
 from coalescenceml.step.base_step import BaseStep
 from coalescenceml.step.base_step_config import BaseStepConfig
+from coalescenceml.step.output import Output
 from coalescenceml.step.step_context import StepContext
 from coalescenceml.step.step_decorator import step
-from coalescenceml.step.step_environment import STEP_ENVIRONMENT_NAME, StepEnvironment
-from coalescenceml.step.output import Output
+from coalescenceml.step.step_environment import (
+    STEP_ENVIRONMENT_NAME,
+    StepEnvironment,
+)
+
 
 __all__ = [
     "STEP_ENVIRONMENT_NAME",

@@ -8,4 +8,5 @@ artifacts get stored.
 from coalescenceml.artifact_store.base_artifact_store import BaseArtifactStore
 from coalescenceml.artifact_store.local_artifact_store import LocalArtifactStore
 
+
 __all__ = ["BaseArtifactStore", "LocalArtifactStore"]

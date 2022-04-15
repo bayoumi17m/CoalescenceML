@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import os
 import platform
 from importlib.util import find_spec
@@ -8,6 +9,7 @@ import distro
 
 from coalescenceml.logger import get_logger
 from coalescenceml.utils.singleton import SingletonMetaClass
+
 
 if TYPE_CHECKING:
     from coalescenceml.step import StepEnvironment
@@ -24,7 +26,7 @@ class Environment(metaclass=SingletonMetaClass):
     """
 
     def __init__(self) -> None:
-        """Initializes an Environment instance.
+        """Initialize an Environment instance.
 
         Note: Environment is a singleton class, which means this method will
         only get called once. All following `Environment()` calls will return
@@ -34,7 +36,11 @@ class Environment(metaclass=SingletonMetaClass):
 
     @property
     def step_is_running(self) -> bool:
-        """Returns if a step is currently running."""
+        """Return if a step is currently running.
+
+        Returns:
+            True if a step is running else False
+        """
         from coalescenceml.step import STEP_ENVIRONMENT_NAME
 
         # A step is considered to be running if there is an active step
@@ -43,7 +49,11 @@ class Environment(metaclass=SingletonMetaClass):
 
     @staticmethod
     def get_system_info() -> Dict[str, Any]:
-        """Information about the operating system."""
+        """Information about the operating system.
+
+        Returns:
+            dictionary with os related information
+        """
         system = platform.system()
 
         if system == "Windows":
@@ -68,17 +78,24 @@ class Environment(metaclass=SingletonMetaClass):
                 "linux_distro_version": distro.version(),
             }
 
-        # We don't collect data for any other system.
         return {"os": "unknown"}
 
     @staticmethod
     def python_version() -> str:
-        """Returns the python version of the running interpreter."""
+        """Return the python version of the running interpreter.
+
+        Returns:
+            version of python in use
+        """
         return platform.python_version()
 
     @staticmethod
     def in_docker() -> bool:
-        """If the current python process is running in a docker container."""
+        """Determine if process is running in a docker container.
+
+        Returns:
+            whether process is in docker
+        """
         # TODO: Make this more reliable and add test.
         try:
             with open("/proc/1/cgroup", "rt") as ifh:
@@ -89,12 +106,20 @@ class Environment(metaclass=SingletonMetaClass):
 
     @staticmethod
     def in_google_colab() -> bool:
-        """If the current Python process is running in a Google Colab."""
+        """Determine if process is running in a Google Colab.
+
+        Returns:
+            whether process is in google colab
+        """
         return "COLAB_GPU" in os.environ
 
     @staticmethod
     def in_notebook() -> bool:
-        """If the current Python process is running in a notebook."""
+        """Determine if process is running in a notebook.
+
+        Returns:
+            whether process is in a jupyter notebook
+        """
         if find_spec("IPython") is not None:
             from IPython import get_ipython  # type: ignore
 
@@ -107,13 +132,17 @@ class Environment(metaclass=SingletonMetaClass):
 
     @staticmethod
     def in_paperspace_gradient() -> bool:
-        """If the current Python process is running in Paperspace Gradient."""
+        """Determine if process is running in Paperspace Gradient.
+
+        Returns:
+            whether process is in paperspace gradient
+        """
         return "PAPERSPACE_NOTEBOOK_REPO_ID" in os.environ
 
     def register_component(
         self, component: "BaseEnvironmentComponent"
     ) -> "BaseEnvironmentComponent":
-        """Registers an environment component.
+        """Register an environment component.
 
         Args:
             component: a BaseEnvironmentComponent instance.
@@ -143,7 +172,8 @@ class Environment(metaclass=SingletonMetaClass):
         """
         if self._components.get(component.NAME) is component:
             del self._components[component.NAME]
-            logger.debug(f"Deregistered environment component {component.NAME}")
+            logger.debug(f"Deregistered environment component"
+                         f"{component.NAME}")
 
         else:
             logger.warning(
@@ -166,12 +196,15 @@ class Environment(metaclass=SingletonMetaClass):
     def get_components(
         self,
     ) -> Dict[str, "BaseEnvironmentComponent"]:
-        """Get all registered environment components."""
+        """Get all registered environment components.
+
+        Returns:
+            A mapping of comonent names to components
+        """
         return self._components.copy()
 
     def has_component(self, name: str) -> bool:
-        """Check if the environment component with a known name is currently
-        available.
+        """Check if the environment component with name is available.
 
         Args:
             name: the environment component name.
@@ -195,7 +228,7 @@ class Environment(metaclass=SingletonMetaClass):
 
         Raises:
             KeyError: if no environment component is registered for the given
-            name.
+                name.
         """
         if name in self._components:
             return self._components[name]
@@ -227,13 +260,21 @@ _BASE_ENVIRONMENT_COMPONENT_NAME = "base_environment_component"
 
 
 class EnvironmentComponentMeta(type):
-    """Metaclass responsible for registering different EnvironmentComponent
-    instances in the global Environment"""
+    """Register EnvironmentComponent instances globally with this Metaclass."""
 
     def __new__(
         mcs, name: str, bases: Tuple[Type[Any], ...], dct: Dict[str, Any]
     ) -> "EnvironmentComponentMeta":
-        """Hook into creation of an BaseEnvironmentComponent class."""
+        """Create BaseEnvironmentComponent class with hook.
+
+        Args:
+            name: Class name
+            bases: Base classes
+            dct: dictionary of attributes
+
+        Returns:
+            An environment component casted as BaseEnvironmentComponent
+        """
         cls = cast(
             Type["BaseEnvironmentComponent"],
             super().__new__(mcs, name, bases, dct),
@@ -241,15 +282,16 @@ class EnvironmentComponentMeta(type):
         if name != "BaseEnvironmentComponent":
             assert (
                 cls.NAME and cls.NAME != _BASE_ENVIRONMENT_COMPONENT_NAME
-            ), "You should specify a unique NAME when creating an EnvironmentComponent !"
+            ), ("You should specify a unique NAME when creating an"
+                "EnvironmentComponent !")
         return cls
 
 
 class BaseEnvironmentComponent(metaclass=EnvironmentComponentMeta):
     """Base Environment component class.
 
-    All Environment components must inherit from this class and provide a unique
-    value for the `NAME` attribute.
+    All Environment components must inherit from this class and provide a
+    unique value for the `NAME` attribute.
 
 
     Different code components can independently contribute with information to
@@ -329,8 +371,7 @@ class BaseEnvironmentComponent(metaclass=EnvironmentComponentMeta):
         self._active = False
 
     def activate(self) -> None:
-        """Activate the environment component and register it in the global
-        Environment.
+        """Activate environment component and register in global Environment.
 
         Raises:
             RuntimeError: if the component is already active.
@@ -343,8 +384,7 @@ class BaseEnvironmentComponent(metaclass=EnvironmentComponentMeta):
         self._active = True
 
     def deactivate(self) -> None:
-        """Deactivate the environment component and deregister it from the
-        global Environment.
+        """Deactivate component and deregister it from global Environment.
 
         Raises:
             RuntimeError: if the component is not active.
@@ -358,7 +398,11 @@ class BaseEnvironmentComponent(metaclass=EnvironmentComponentMeta):
 
     @property
     def active(self) -> bool:
-        """Check if the environment component is currently active."""
+        """Check if the environment component is currently active.
+
+        Returns:
+            if the environment component is activated
+        """
         return self._active
 
     def __enter__(self) -> "BaseEnvironmentComponent":
@@ -371,5 +415,9 @@ class BaseEnvironmentComponent(metaclass=EnvironmentComponentMeta):
         return self
 
     def __exit__(self, *args: Any) -> None:
-        """Environment component context exit point."""
+        """Environment component context exit point.
+
+        Args:
+            args: any arguments that are passed in
+        """
         self.deactivate()

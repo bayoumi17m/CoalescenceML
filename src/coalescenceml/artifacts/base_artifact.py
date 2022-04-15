@@ -14,8 +14,8 @@ PRODUCER_PROPERTY = Property(type=PropertyType.STRING)
 
 
 class BaseArtifact(Artifact):
-    """
-    """
+    """ """
+
     TYPE_NAME: str = "BaseArtifact"
     PROPERTIES: Dict[str, Property] = {
         DATATYPE_PROPERTY_KEY: DATATYPE_PROPERTY,
@@ -33,11 +33,13 @@ class BaseArtifact(Artifact):
         """Validate artifact and set type"""
         type_name = cls.TYPE_NAME
         if not isinstance(type_name, str):
-            raise ValueError(f"The subclass {cls} must overrise TYPE_NAME attribute with a string type name (got {type_name} instead)")
+            raise ValueError(
+                f"The subclass {cls} must overrise TYPE_NAME attribute with a string type name (got {type_name} instead)"
+            )
 
         # Create ml metadata artifact type
         mlmd_artifact_type = metadata_store_pb2.ArtifactType()
-        mlmd_artifact_type.name = type_name # store the name
+        mlmd_artifact_type.name = type_name  # store the name
 
         # Perform validation on properties
         if cls.PROPERTIES:
@@ -45,11 +47,10 @@ class BaseArtifact(Artifact):
                 raise ValueError(f"The subclass {cls}.PROPERTIES is not a dict")
 
             for key, value in cls.PROPERTIES.items():
-                if not (
-                    isinstance(key, str)
-                    and isinstance(value, Property)
-                ):
-                    raise ValueError(f"The subclass {cls}.PROPERTIES dictionary must have keys of type string and values of type tfx.types.artifact.Property")
+                if not (isinstance(key, str) and isinstance(value, Property)):
+                    raise ValueError(
+                        f"The subclass {cls}.PROPERTIES dictionary must have keys of type string and values of type tfx.types.artifact.Property"
+                    )
 
             # Finally populate ML metadata properties
             for key, value in cls.PROPERTIES.items():
@@ -58,4 +59,3 @@ class BaseArtifact(Artifact):
             raise ValueError("Empty properties dictionary!")
 
         cls.MLMD_ARTIFACT_TYPE = mlmd_artifact_type
-

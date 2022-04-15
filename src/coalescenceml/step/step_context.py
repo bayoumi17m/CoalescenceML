@@ -1,19 +1,23 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Dict, NamedTuple, Optional, Type, cast
 
-from coalescenceml.step.exceptions import StepContextError
 from coalescenceml.directory import Directory
+from coalescenceml.step.exceptions import StepContextError
 
 
 if TYPE_CHECKING:
     from coalescenceml.artifacts.base_artifact import BaseArtifact
+    from coalescenceml.metadata_store.base_metadata_store import (
+        BaseMetadataStore,
+    )
     from coalescenceml.producers.base_producer import BaseProducer
-    from coalescenceml.metadata_store.base_metadata_store import BaseMetadataStore
     from coalescenceml.stack import Stack
 
 
 class StepContextOutput(NamedTuple):
     """"""
+
     producer_class: Type[BaseProducer]
     artifact: BaseArtifact
 
@@ -21,26 +25,26 @@ class StepContextOutput(NamedTuple):
 class StepContext(object):
     """"""
 
-    def __init__(self,
+    def __init__(
+        self,
         step_name: str,
         output_producers: Dict[str, Type[BaseProducer]],
         output_artifacts: Dict[str, BaseArtifact],
     ):
-        """
-        """
+        """ """
         if output_producers.keys() != output_artifacts.keys():
             raise ValueError(f"Mismatched keys")
 
         self.step_name = step_name
         self._outputs = {
             key: StepContextOutput(
-                output_producer[key], output_artifact[key],
+                output_producer[key],
+                output_artifact[key],
             )
             for key in output_artifacts.keys()
         }
         self._metadata_store = Directory().active_stack.metadata_store
         self._stack = Directory().active_stack
-    
 
     def _get_output(
         self, output_name: Optional[str] = None

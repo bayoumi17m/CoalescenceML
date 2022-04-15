@@ -7,6 +7,7 @@ https://github.com/tensorflow/tfx/blob/master/tfx/dsl/component/experimental/dec
 Modified to work with coalesenceml
 """
 from __future__ import annotations
+
 import inspect
 import json
 import sys
@@ -42,11 +43,15 @@ from coalescenceml.io import fileio
 from coalescenceml.logger import get_logger
 from coalescenceml.producers.base_producer import BaseProducer
 from coalescenceml.step.base_step_config import BaseStepConfig
-from coalescenceml.step.exceptions import MissingStepParameterError, StepInterfaceError
+from coalescenceml.step.exceptions import (
+    MissingStepParameterError,
+    StepInterfaceError,
+)
+from coalescenceml.step.output import Output
 from coalescenceml.step.step_context import StepContext
 from coalescenceml.step.step_environment import StepEnvironment
-from coalescenceml.step.output import Output
 from coalescenceml.utils import source_utils
+
 
 logger = get_logger(__name__)
 
@@ -61,6 +66,7 @@ INTERNAL_EXECUTION_PARAMETER_PREFIX: str = "coml-"
 INSTANCE_CONFIGURATION: str = "INSTANCE_CONFIGURATION"
 OUTPUT_SPEC: str = "OUTPUT_SPEC"
 
+
 def do_types_match(type_a: Type[Any], type_b: Type[Any]) -> bool:
     """Check whether type_a and type_b match.
 
@@ -72,6 +78,7 @@ def do_types_match(type_a: Type[Any], type_b: Type[Any]) -> bool:
         True if types match, otherwise False.
     """
     return isinstance(type_a, type_b)
+
 
 def resolve_type_annotation(obj: Any) -> Any:
     """Returns the non-generic class for generic aliases of the typing module.
@@ -162,9 +169,7 @@ class _FunctionExecutor(BaseExecutor):
     """Base TFX Executor class which is compatible with CoML steps"""
 
     _FUNCTION = staticmethod(lambda: None)
-    producers: ClassVar[
-        Optional[Dict[str, Type["BaseProducer"]]]
-    ] = None
+    producers: ClassVar[Optional[Dict[str, Type["BaseProducer"]]]] = None
 
     def resolve_producer_with_registry(
         self, param_name: str, artifact: BaseArtifact
@@ -209,9 +214,9 @@ class _FunctionExecutor(BaseExecutor):
                 )
             return artifact
 
-        producer = source_utils.load_source_path_class(
-            artifact.producer
-        )(artifact)
+        producer = source_utils.load_source_path_class(artifact.producer)(
+            artifact
+        )
         # The producer now returns a resolved input
         return producer.handle_input(data_type=data_type)
 
@@ -495,5 +500,3 @@ def generate_component_class(
             "__module__": step_module,
         },
     )
-
-

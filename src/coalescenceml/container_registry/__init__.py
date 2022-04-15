@@ -9,4 +9,5 @@ from coalescenceml.container_registry.base_container_registry import (
     BaseContainerRegistry,
 )
 
+
 __all__ = ["BaseContainerRegistry"]

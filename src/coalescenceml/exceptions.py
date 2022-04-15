@@ -1,7 +1,6 @@
 class InitializationException(Exception):
-    """Raised when an error occurred during initialization of a CoML
-    directory."""
+    """Raised when an error occurred during init of a CoML directory."""
+
 
 class ForbiddenDirectoryAccessError(RuntimeError):
-    """Raised when trying to access a CoML directory instance while a step
-    is executed."""
+    """Raised when accessing a CoML directory while a step is executed."""

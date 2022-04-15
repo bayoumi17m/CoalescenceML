@@ -5,13 +5,17 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from coalescenceml.enums import StackComponentFlavor, DirectoryStoreFlavor
+from coalescenceml.enums import DirectoryStoreFlavor, StackComponentFlavor
 from coalescenceml.io import fileio, utils
 from coalescenceml.logger import get_logger
 from coalescenceml.stack.exceptions import StackComponentExistsError
 from coalescenceml.stack_store import BaseStackStore
-from coalescenceml.stack_store.model import StackComponentWrapper, StackStoreModel
+from coalescenceml.stack_store.model import (
+    StackComponentWrapper,
+    StackStoreModel,
+)
 from coalescenceml.utils import yaml_utils
+
 
 logger = get_logger(__name__)
 
@@ -117,7 +121,9 @@ class LocalStackStore(BaseStackStore):
         return self.__store.stacks[name]
 
     @property
-    def stack_configurations(self) -> Dict[str, Dict[StackComponentFlavor, str]]:
+    def stack_configurations(
+        self,
+    ) -> Dict[str, Dict[StackComponentFlavor, str]]:
         """Configuration for all stacks registered in this stack store.
         Returns:
             Dictionary mapping stack names to Dict[StackComponentFlavor, str]

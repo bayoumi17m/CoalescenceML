@@ -6,10 +6,10 @@ from coalescenceml.cli import utils as cli_utils
 from coalescenceml.cli.cli import cli
 from coalescenceml.config.global_config import GlobalConfiguration
 from coalescenceml.constants import console
-from coalescenceml.enums import StackComponentFlavor
-from coalescenceml.stack.exceptions import ProvisioningError
 from coalescenceml.directory import Directory
+from coalescenceml.enums import StackComponentFlavor
 from coalescenceml.stack import Stack
+from coalescenceml.stack.exceptions import ProvisioningError
 
 
 # Stacks
@@ -308,9 +308,7 @@ def up_stack() -> None:
     cli_utils.print_active_profile()
 
     stack_ = Directory().active_stack
-    cli_utils.info(
-        f"Provisioning resources for active stack '{stack_.name}'."
-    )
+    cli_utils.info(f"Provisioning resources for active stack '{stack_.name}'.")
     try:
         stack_.provision()
         stack_.resume()

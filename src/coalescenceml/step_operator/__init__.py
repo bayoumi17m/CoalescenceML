@@ -8,4 +8,5 @@ with a GPU (like a trainer step).
 """
 from coalescenceml.step_operator.base_step_operator import BaseStepOperator
 
+
 __all__ = ["BaseStepOperator"]

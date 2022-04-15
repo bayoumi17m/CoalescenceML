@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import textwrap
 from abc import ABC
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Set
@@ -7,12 +8,15 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field, root_validator
 
 from coalescenceml.enums import StackComponentFlavor
-from coalescenceml.stack.exceptions import StackComponentInterfaceError
 from coalescenceml.integrations.utils import get_requirements_for_module
+from coalescenceml.stack.exceptions import StackComponentInterfaceError
+
 
 if TYPE_CHECKING:
     from coalescenceml.pipeline import BasePipeline
-    from coalescenceml.pipeline.runtime_configuration import RuntimeConfiguration
+    from coalescenceml.pipeline.runtime_configuration import (
+        RuntimeConfiguration,
+    )
     from coalescenceml.stack import Stack, StackValidator
 
 

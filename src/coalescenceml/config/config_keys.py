@@ -56,6 +56,7 @@ class ConfigKeys:
                 f"Required keys: {required}, optional keys: {optional}."
             )
 
+
 class PipelineConfigurationKeys(ConfigKeys):
     """Keys for a pipeline configuration dict."""
 

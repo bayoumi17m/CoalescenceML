@@ -1,14 +1,6 @@
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Optional,
-    Type,
-    TypeVar,
-    overload,
-)
+from typing import Any, Callable, Dict, Optional, Type, TypeVar, overload
 
+from coalescenceml.artifacts.base_artifact import BaseArtifact
 from coalescenceml.step import BaseStep
 from coalescenceml.step.utils import (
     INSTANCE_CONFIGURATION,
@@ -19,9 +11,9 @@ from coalescenceml.step.utils import (
     STEP_INNER_FUNC_NAME,
 )
 
-from coalescenceml.artifacts.base_artifact import BaseArtifact
 
 F = TypeVar("F", bound=Callable[..., Any])
+
 
 @overload
 def step(func: F) -> Type[BaseStep]:
@@ -36,8 +28,7 @@ def step(
     output_types: Optional[Dict[str, Type[BaseArtifact]]] = None,
     custom_step_operator: Optional[str] = None
 ) -> Type[BaseStep]:
-    """
-    """
+    """ """
     step_name = name or func.__name__
     output_spec = output_types or {}
 
@@ -53,5 +44,5 @@ def step(
             },
             OUTPUT_SPEC: output_spec,
             "__model__": func.__module__,
-        }
+        },
     )

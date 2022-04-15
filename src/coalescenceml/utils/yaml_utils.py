@@ -5,6 +5,7 @@ import yaml
 
 from coalescenceml.io import fileio, utils
 
+
 def write_yaml(file_path: str, contents: Dict[Any, Any]) -> None:
     """Write contents as YAML format to file_path.
     Args:

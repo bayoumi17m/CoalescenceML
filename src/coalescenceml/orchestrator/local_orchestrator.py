@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import json
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -10,17 +11,22 @@ from tfx.orchestration.local import runner_utils
 from tfx.orchestration.pipeline import Pipeline as TfxPipeline
 from tfx.orchestration.portable import launcher, runtime_parameter_utils
 from tfx.proto.orchestration import executable_spec_pb2
-from tfx.proto.orchestration.pipeline_pb2 import Pipeline as Pb2Pipeline
-from tfx.proto.orchestration.pipeline_pb2 import PipelineNode
+from tfx.proto.orchestration.pipeline_pb2 import (
+    Pipeline as Pb2Pipeline,
+    PipelineNode,
+)
 
+from coalescenceml.directory import Directory
 from coalescenceml.enums import MetadataContextFlavor
 from coalescenceml.logger import get_logger
 from coalescenceml.orchestrator import BaseOrchestrator, utils
-from coalescenceml.directory import Directory
+
 
 if TYPE_CHECKING:
     from coalescenceml.pipeline.base_pipeline import BasePipeline
-    from coalescenceml.pipeline.runtime_configuration import RuntimeConfiguration
+    from coalescenceml.pipeline.runtime_configuration import (
+        RuntimeConfiguration,
+    )
     from coalescenceml.stack import Stack
 
 
@@ -41,7 +47,9 @@ class LocalOrchestrator(BaseOrchestrator):
     ) -> Any:
         """Runs a pipeline locally"""
 
-        tfx_pipeline: TfxPipeline = utils.create_tfx_pipeline(pipeline, stack=stack)
+        tfx_pipeline: TfxPipeline = utils.create_tfx_pipeline(
+            pipeline, stack=stack
+        )
 
         if runtime_configuration is None:
             runtime_configuration = RuntimeConfiguration()

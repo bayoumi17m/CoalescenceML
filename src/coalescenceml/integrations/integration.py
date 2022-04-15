@@ -6,6 +6,7 @@ import pkg_resources
 from coalescenceml.integrations.registry import integration_registry
 from coalescenceml.logger import get_logger
 
+
 logger = get_logger(__name__)
 
 

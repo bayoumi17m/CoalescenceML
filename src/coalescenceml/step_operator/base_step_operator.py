@@ -20,13 +20,13 @@ class BaseStepOperator(StackComponent, ABC):
         entrypoint_command: List[str],
     ) -> None:
         """Abstract method to execute a step.
-        
+
         Concrete step operator subclasses must implement the following
         functionality in this method:
         - Prepare the execution environment and install all the necessary
           `requirements`
         - Launch a **synchronous** job that executes the `entrypoint_command`
-        
+
         Args:
             pipeline_name: Name of the pipeline which the step to be executed
                 is part of.

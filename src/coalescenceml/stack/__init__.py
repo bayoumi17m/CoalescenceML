@@ -13,6 +13,7 @@ from coalescenceml.stack.stack import Stack
 from coalescenceml.stack.stack_component import StackComponent
 from coalescenceml.stack.stack_validator import StackValidator
 
+
 __all__ = [
     "Stack",
     "StackComponent",

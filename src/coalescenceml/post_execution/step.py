@@ -1,11 +1,14 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Dict, List
 
 from coalescenceml.enums import ExecutionStatus
 from coalescenceml.post_execution.artifact import ArtifactView
 
+
 if TYPE_CHECKING:
     from coalescenceml.metadata_store import BaseMetadataStore
+
 
 class StepView:
     """Post-execution step class which can be used to query

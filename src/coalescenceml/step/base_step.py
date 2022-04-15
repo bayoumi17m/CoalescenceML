@@ -27,16 +27,16 @@ from tfx.types.channel import Channel
 
 from coalescenceml.artifacts.base_artifact import BaseArtifact
 from coalescenceml.artifacts.type_registry import type_registry
-from coalescenceml.step.exceptions import MissingStepParameterError, StepInterfaceError
 from coalescenceml.logger import get_logger
 from coalescenceml.producers.base_producer import BaseProducer
-from coalescenceml.producers.producer_registry import (
-    producer_registry,
-)
-from coalescenceml.step_operator.step_executor_operator import StepExecutorOperator
+from coalescenceml.producers.producer_registry import producer_registry
 from coalescenceml.step.base_step_config import BaseStepConfig
-from coalescenceml.step.step_context import StepContext
+from coalescenceml.step.exceptions import (
+    MissingStepParameterError,
+    StepInterfaceError,
+)
 from coalescenceml.step.output import Output
+from coalescenceml.step.step_context import StepContext
 from coalescenceml.step.utils import (
     INSTANCE_CONFIGURATION,
     INTERNAL_EXECUTION_PARAMETER_PREFIX,
@@ -49,7 +49,11 @@ from coalescenceml.step.utils import (
     generate_component_class,
     resolve_type_annotation,
 )
+from coalescenceml.step_operator.step_executor_operator import (
+    StepExecutorOperator,
+)
 from coalescenceml.utils.source_utils import get_hashed_source
+
 
 logger = get_logger(__name__)
 
@@ -649,9 +653,7 @@ class BaseStep(metaclass=BaseStepMeta):
 
     def with_return_producers(
         self: T,
-        producers: Union[
-            Type[BaseProducer], Dict[str, Type[BaseProducer]]
-        ],
+        producers: Union[Type[BaseProducer], Dict[str, Type[BaseProducer]]],
     ) -> T:
         """Register producers for step outputs.
 

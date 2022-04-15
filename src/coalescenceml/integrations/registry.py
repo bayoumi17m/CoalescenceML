@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 
 from coalescenceml.integrations.exceptions import IntegrationError
 from coalescenceml.logger import get_logger
+
 
 if TYPE_CHECKING:
     from coalescenceml.integrations.integration import Integration

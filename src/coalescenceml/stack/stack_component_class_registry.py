@@ -9,6 +9,7 @@ from coalescenceml.metadata_store import MySQLMetadataStore, SQLiteMetadataStore
 from coalescenceml.orchestrator import LocalOrchestrator
 from coalescenceml.stack import StackComponent
 
+
 logger = get_logger(__name__)
 
 
@@ -54,7 +55,7 @@ class StackComponentClassRegistry:
         component_flavor: str,
     ) -> Type[StackComponent]:
         """Returns the stack component class for the given type and flavor.
-        
+
         Args:
             component_type: The type of the component class to return.
             component_flavor: The flavor of the component class to return.

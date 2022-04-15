@@ -1,17 +1,16 @@
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import click
 from rich import box, table
-from rich.text import Text
 
 from coalescenceml.config.profile_config import ProfileConfiguration
-from coalescenceml.logger import get_logger
-from coalescenceml.constants import console, IS_DEBUG_ENV
+from coalescenceml.constants import console
 from coalescenceml.directory import Directory
 from coalescenceml.enums import StackComponentFlavor
 from coalescenceml.integrations.integration import IntegrationMeta
+from coalescenceml.logger import get_logger
 from coalescenceml.stack import StackComponent
 
 
@@ -25,7 +24,7 @@ def title(text: str) -> None:
         text: Input text string
     """
     console.print(text.upper(), style="title")
-    #click.echo(click.style(text.upper(), fg="cyan", bold=True, underline=True))
+    # click.echo(click.style(text.upper(), fg="cyan", bold=True, underline=True))
 
 
 def confirmation(text: str, *args: Any, **kwargs: Any) -> bool:
@@ -70,7 +69,7 @@ def info(text: str) -> None:
         text: Input text string.
     """
     console.print(text, style="info")
-    #click.echo(click.style(text, fg="green"))
+    # click.echo(click.style(text, fg="green"))
 
 
 def print_table(tab: List[Dict[str, Any]]) -> None:
@@ -101,15 +100,15 @@ def format_integration_list(
     integrations: List[Tuple[str, IntegrationMeta]]
 ) -> List[Dict[str, str]]:
     """Formats a list of integrations into a List of Dicts."""
-    
+
     list_of_dicts = []
     for name, integration_impl in integrations:
-        is_installed = integration_impl.check_installation() # type: ignore[attr-defined]
+        is_installed = integration_impl.check_installation()  # type: ignore[attr-defined]
         list_of_dicts.append(
             {
                 "INSTALLED": ":white_check_mark:" if is_installed else "",
                 "INTEGRATION": name,
-                "REQUIRED_PACKAGES": ", ".join(integration_impl.REQUIREMENTS), # type: ignore[attr-defined]
+                "REQUIRED_PACKAGES": ", ".join(integration_impl.REQUIREMENTS),  # type: ignore[attr-defined]
             }
         )
     return list_of_dicts
@@ -120,10 +119,10 @@ def print_stack_component_list(
     active_component_name: Optional[str] = None,
 ) -> None:
     """Prints a table with configuration options for a list of stack components.
-    
+
     ..note: If a component is active (its name matches the
     `active_component_name`), it will be highlighted in a separate table column.
-    
+
     Args:
         components: List of stack components to print.
         active_component_name: Name of the component that is currently
@@ -147,7 +146,7 @@ def print_stack_configuration(
     config: Dict[StackComponentFlavor, str], active: bool, stack_name: str
 ) -> None:
     """Prints the configuration options of a stack.
-    
+
     Args:
         config:
         active:
@@ -203,9 +202,7 @@ def print_active_profile() -> None:
     """Print active profile."""
     dir_ = Directory()
     scope = "local" if dir_.root else "global"
-    info(
-        f"Running with active profile: '{dir_.active_profile_name}' ({scope})"
-    )
+    info(f"Running with active profile: '{dir_.active_profile_name}' ({scope})")
 
 
 def print_active_stack() -> None:

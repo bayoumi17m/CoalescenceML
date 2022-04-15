@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, List
 
 from coalescenceml.logger import get_logger
+
 
 if TYPE_CHECKING:
     from coalescenceml.metadata_store import BaseMetadataStore
@@ -15,9 +17,7 @@ class PipelineView:
     pipeline-related information from the metadata store.
     """
 
-    def __init__(
-        self, id_: int, name: str, metadata_store: BaseMetadataStore
-    ):
+    def __init__(self, id_: int, name: str, metadata_store: BaseMetadataStore):
         """Initializes a post-execution pipeline object.
         In most cases `PipelineView` objects should not be created manually
         but retrieved using the `get_pipelines()` method of a

@@ -1,0 +1,25 @@
+name: Integration Test
+
+on: workflow_call
+
+jobs:
+
+  integrationtest:
+    name: integrationtest
+    runs-on: ${{ matrix.os }}
+    env:
+      COML_DEBUG: 1
+      PYTHONIOENCODING: 'utf-8'
+
+    defaults:
+      run:
+        shell: bash
+
+    strategy:
+      matrix:
+        os: [ macos-latest, ubuntu-latest, windows-latest ]
+        python-version: [ 3.7, 3.8 ]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2

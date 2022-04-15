@@ -19,6 +19,7 @@ from typing import Any, Callable, Iterator, Optional, Type, Union
 from coalescenceml.environment import Environment
 from coalescenceml.logger import get_logger
 
+
 logger = get_logger(__name__)
 
 
@@ -58,7 +59,7 @@ def get_source(value: Any) -> str:
             if hasattr(object, "__module__"):
                 object_ = sys.modules.get(object.__module__)
                 if hasattr(object_, "__file__"):
-                    return object_.__file__ 
+                    return object_.__file__
 
             # If parent module is __main__, lookup by methods
             for name, member in inspect.getmembers(object):
@@ -82,6 +83,7 @@ def get_source(value: Any) -> str:
         # Use standard inspect if running outside a notebook
         src = inspect.getsource(value)
     return src
+
 
 def get_hashed_source(value: Any) -> str:
     """Returns a hash of the objects source code."""
@@ -108,7 +110,7 @@ def prepend_python_path(path: str) -> Iterator[None]:
 
 def import_class_by_path(class_path: str) -> Type[Any]:
     """Imports a class based on a given path
-    
+
     Args:
         class_path: str, class_source e.g. this.module.Class
     Returns: the given class
@@ -223,7 +225,7 @@ def get_module_source_from_module(module: ModuleType) -> str:
 
 def is_standard_source(source: str) -> bool:
     """Returns `True` if source is a standard CoalescenceML source.
-    
+
     Args:
         source: class_source e.g. this.module.Class[@pin].
     """

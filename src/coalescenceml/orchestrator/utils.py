@@ -1,29 +1,41 @@
 from __future__ import annotations
+
 import json
 import logging
 import time
 import uuid
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, List, Optional, Tuple, cast
-
-from pydantic import BaseModel
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    cast,
+)
 
 import tfx.orchestration.pipeline as tfx_pipeline
+from pydantic import BaseModel
 from tfx.orchestration.portable import data_types, launcher
 from tfx.proto.orchestration.pipeline_pb2 import ContextSpec, PipelineNode
 
-from coalescenceml.logger import get_logger
 from coalescenceml.directory import Directory
+from coalescenceml.logger import get_logger
 from coalescenceml.step import BaseStep
 from coalescenceml.step.utils import (
     INTERNAL_EXECUTION_PARAMETER_PREFIX,
     PARAM_PIPELINE_PARAMETER_NAME,
 )
 from coalescenceml.utils import readability_utils
-    
+
 
 if TYPE_CHECKING:
     from coalescenceml.pipeline.base_pipeline import BasePipeline
-    from coalescenceml.pipeline.runtime_configuration import RuntimeConfiguration
+    from coalescenceml.pipeline.runtime_configuration import (
+        RuntimeConfiguration,
+    )
     from coalescenceml.stack import Stack
 
 logger = get_logger(__name__)
@@ -36,7 +48,9 @@ def create_tfx_pipeline(
     # Build dag from all steps in the pipeline
     coalescenceml_pipeline.build_dag(**coalescenceml_pipeline.steps)
 
-    tfx_components = [step.component for step in coalescenceml_pipeline.steps.values()]
+    tfx_components = [
+        step.component for step in coalescenceml_pipeline.steps.values()
+    ]
 
     artifact_store = stack.artifact_store
     metadata_store = stack.metadata_store
@@ -138,8 +152,10 @@ def execute_step(
             # Hacky workaround to catch the error that a pipeline run with
             # this name already exists. Raise an error with a more descriptive
             # message instead.
-            raise RuntimeError("Unable to run a pipeline with a run name that "
-                "already exists.")
+            raise RuntimeError(
+                "Unable to run a pipeline with a run name that "
+                "already exists."
+            )
         else:
             raise e
 

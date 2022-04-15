@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import inspect
 from abc import abstractmethod
 from typing import (
@@ -24,19 +25,20 @@ from coalescenceml.constants import (
     ENV_COML_PREVENT_PIPELINE_EXECUTION,
     SHOULD_PREVENT_PIPELINE_EXECUTION,
 )
+from coalescenceml.directory import Directory
+from coalescenceml.integrations.registry import integration_registry
+from coalescenceml.io import fileio, utils
+from coalescenceml.logger import get_logger
 from coalescenceml.pipeline.exceptions import (
     PipelineConfigurationError,
     PipelineInterfaceError,
 )
-from coalescenceml.integrations.registry import integration_registry
-from coalescenceml.io import fileio, utils
-from coalescenceml.logger import get_logger
-from coalescenceml.directory import Directory
-from coalescenceml.pipeline.schedule import Schedule
 from coalescenceml.pipeline.runtime_configuration import RuntimeConfiguration
+from coalescenceml.pipeline.schedule import Schedule
+from coalescenceml.stack.exceptions import StackValidationError
 from coalescenceml.step import BaseStep
 from coalescenceml.utils import yaml_utils
-from coalescenceml.stack.exceptions import StackValidationError
+
 
 if TYPE_CHECKING:
     from coalescenceml.stack import Stack
@@ -76,7 +78,8 @@ class BasePipelineMeta(type):
         return cls
 
 
-T = TypeVar('T', bound="BasePipeline")
+T = TypeVar("T", bound="BasePipeline")
+
 
 class BasePipeline(metaclass=BasePipelineMeta):
     """Abstract base class for all CoML pipelines.
@@ -427,4 +430,3 @@ class BasePipeline(metaclass=BasePipelineMeta):
                         "use the options specified in the yaml file.",
                         parameter,
                     )
-

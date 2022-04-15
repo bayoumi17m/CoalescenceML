@@ -1,10 +1,10 @@
 from typing import AbstractSet, Callable, Optional
 
 from coalescenceml.enums import StackComponentFlavor
-from coalescenceml.stack.exceptions import StackValidationError
 from coalescenceml.logger import get_logger
-
 from coalescenceml.stack import Stack
+from coalescenceml.stack.exceptions import StackValidationError
+
 
 logger = get_logger(__name__)
 

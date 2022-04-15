@@ -91,7 +91,11 @@ from typing import Iterable
 import click
 from tfx.dsl.io.filesystem import PathType
 
-from coalescenceml.constants import APP_NAME, ENV_COML_CONFIG_PATH, REMOTE_FS_PREFIX
+from coalescenceml.constants import (
+    APP_NAME,
+    ENV_COML_CONFIG_PATH,
+    REMOTE_FS_PREFIX,
+)
 from coalescenceml.io.fileio import (
     copy,
     exists,

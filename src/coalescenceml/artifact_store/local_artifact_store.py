@@ -18,6 +18,7 @@ from pydantic import validator
 from coalescenceml.artifact_store import BaseArtifactStore
 from coalescenceml.artifact_store.exceptions import ArtifactStoreInterfaceError
 
+
 # TODO: Can we have this be imported from somewhere b/c we use it a lot??
 PathType = Union[bytes, str]
 
@@ -127,6 +128,7 @@ class LocalArtifactStore(BaseArtifactStore):
     @validator("path")
     def ensure_path_local(cls, path: str) -> str:
         from coalescenceml.constants import REMOTE_FS_PREFIX
+
         if any(path.startswith(prefix) for prefix in REMOTE_FS_PREFIX):
             raise ArtifactStoreInterfaceError(
                 f"The path:{path} you defined for your local artifact store "

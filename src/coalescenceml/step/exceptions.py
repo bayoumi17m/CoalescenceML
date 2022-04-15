@@ -1,16 +1,21 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, List
+
 
 if TYPE_CHECKING:
     from coalescenceml.step import BaseStepConfig
+
 
 class StepContextError(Exception):
     """Raises exception when interacting with a StepContext
     in an unsupported way."""
 
+
 class StepInterfaceError(Exception):
     """Raises exception when interacting with the Step interface
     in an unsupported way."""
+
 
 class MissingStepParameterError(Exception):
     """Raises exceptions when a step parameter is missing when running a
@@ -40,4 +45,3 @@ class MissingStepParameterError(Exception):
             `my_pipeline({step_name}(config={config_class.__name__}(...))`
             """
         super().__init__(message)
-

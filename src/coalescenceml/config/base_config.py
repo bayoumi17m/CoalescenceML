@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional
+
 
 if TYPE_CHECKING:
     from coalescenceml.config.profile_config import ProfileConfiguration

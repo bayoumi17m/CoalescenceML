@@ -16,9 +16,10 @@ from typing import (
 from pydantic import root_validator
 from tfx.dsl.io.fileio import NotFoundError
 
-from coalescenceml.enums import StackComponentFlavor
 from coalescenceml.artifact_store.exceptions import ArtifactStoreInterfaceError
+from coalescenceml.enums import StackComponentFlavor
 from coalescenceml.stack import StackComponent
+
 
 PathType = Union[bytes, str]
 
@@ -193,4 +194,3 @@ class BaseArtifactStore(StackComponent, ABC):
         DEFAULT_FILESYSTEM_REGISTRY.register(
             filesystem_class, priority=priority
         )
-

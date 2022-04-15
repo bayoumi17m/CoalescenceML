@@ -1,14 +1,17 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Dict, Optional, cast
 
 from coalescenceml.constants import RUN_NAME_OPTION_KEY
 from coalescenceml.logger import get_logger
+
 
 if TYPE_CHECKING:
     from coalescenceml.pipeline import Schedule
 
 logger = get_logger(__name__)
 SCHEDULE_OPTION_KEY = "schedule"
+
 
 class RuntimeConfiguration(Dict[str, Any]):
     """RuntimeConfiguration store dynamic options for a pipeline run.
@@ -24,7 +27,7 @@ class RuntimeConfiguration(Dict[str, Any]):
         *,
         run_name: Optional[str] = None,
         schedule: Optional["Schedule"] = None,
-        **runtime_options: Any
+        **runtime_options: Any,
     ):
         """Initializes a RuntimeConfiguration object.
         Args:
@@ -45,4 +48,5 @@ class RuntimeConfiguration(Dict[str, Any]):
     def schedule(self) -> Optional[Schedule]:
         """Schedule of the pipeline run."""
         from coalescenceml.pipeline import Schedule
+
         return cast(Optional[Schedule], self[SCHEDULE_OPTION_KEY])

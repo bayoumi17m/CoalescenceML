@@ -6,12 +6,13 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError, NoResultFound
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
-from coalescenceml.enums import StackComponentFlavor, DirectoryStoreFlavor
+from coalescenceml.enums import DirectoryStoreFlavor, StackComponentFlavor
 from coalescenceml.io import utils
 from coalescenceml.logger import get_logger
 from coalescenceml.stack.exceptions import StackComponentExistsError
 from coalescenceml.stack_store import BaseStackStore
 from coalescenceml.stack_store.model import StackComponentWrapper
+
 
 logger = get_logger(__name__)
 
@@ -37,9 +38,12 @@ class CoalescenceStackComponent(SQLModel, table=True):
 class CoalescenceStackDefinition(SQLModel, table=True):
     """Join table between Stacks and StackComponents"""
 
-    stack_name: str = Field(primary_key=True, foreign_key="coalescencestack.name")
+    stack_name: str = Field(
+        primary_key=True, foreign_key="coalescencestack.name"
+    )
     component_flavor: StackComponentFlavor = Field(
-        primary_key=True, foreign_key="coalescencestackcomponent.component_flavor"
+        primary_key=True,
+        foreign_key="coalescencestackcomponent.component_flavor",
     )
     component_name: str = Field(
         primary_key=True, foreign_key="coalescencestackcomponent.name"
@@ -179,7 +183,8 @@ class SqlStackStore(BaseStackStore):
                     == CoalescenceStackComponent.component_type
                 )
                 .where(
-                    CoalescenceStackDefinition.component_name == CoalescenceStackComponent.name
+                    CoalescenceStackDefinition.component_name
+                    == CoalescenceStackComponent.name
                 )
                 .where(CoalescenceStackDefinition.stack_name == name)
             )
@@ -190,7 +195,9 @@ class SqlStackStore(BaseStackStore):
         return {StackComponentFlavor(typ): name for typ, name in params.items()}
 
     @property
-    def stack_configurations(self) -> Dict[str, Dict[StackComponentFlavor, str]]:
+    def stack_configurations(
+        self,
+    ) -> Dict[str, Dict[StackComponentFlavor, str]]:
         """Configuration for all stacks registered in this stack store.
 
         Returns:
@@ -215,7 +222,9 @@ class SqlStackStore(BaseStackStore):
             existing_component = session.exec(
                 select(CoalescenceStackComponent)
                 .where(CoalescenceStackComponent.name == component.name)
-                .where(CoalescenceStackComponent.component_type == component.type)
+                .where(
+                    CoalescenceStackComponent.component_type == component.type
+                )
             ).first()
             if existing_component is not None:
                 raise StackComponentExistsError(
@@ -244,7 +253,9 @@ class SqlStackStore(BaseStackStore):
         with Session(self.engine) as session:
             try:
                 stack = session.exec(
-                    select(CoalescenceStack).where(CoalescenceStack.name == name)
+                    select(CoalescenceStack).where(
+                        CoalescenceStack.name == name
+                    )
                 ).one()
                 session.delete(stack)
             except NoResultFound as error:
@@ -302,7 +313,9 @@ class SqlStackStore(BaseStackStore):
         with Session(self.engine) as session:
             component = session.exec(
                 select(CoalescenceStackComponent)
-                .where(CoalescenceStackComponent.component_type == component_flavor)
+                .where(
+                    CoalescenceStackComponent.component_type == component_flavor
+                )
                 .where(CoalescenceStackComponent.name == name)
             ).one_or_none()
             if component is None:
@@ -344,7 +357,9 @@ class SqlStackStore(BaseStackStore):
         with Session(self.engine) as session:
             component = session.exec(
                 select(CoalescenceStackComponent)
-                .where(CoalescenceStackComponent.component_type == component_flavor)
+                .where(
+                    CoalescenceStackComponent.component_type == component_flavor
+                )
                 .where(CoalescenceStackComponent.name == name)
             ).first()
             if component is not None:

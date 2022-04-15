@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import json
 import os
 import sys
@@ -16,14 +17,15 @@ from tfx.proto.orchestration import (
 
 import coalescenceml
 import coalescenceml.constants
+from coalescenceml.directory import Directory
 from coalescenceml.io import fileio
 from coalescenceml.logger import get_logger
-from coalescenceml.directory import Directory
 from coalescenceml.step.utils import (
     INTERNAL_EXECUTION_PARAMETER_PREFIX,
     PARAM_CUSTOM_STEP_OPERATOR,
 )
-from coalescenceml.utils import source_utils, yaml_utils
+from coalescenceml.utils import json_utils, source_utils
+
 
 if TYPE_CHECKING:
     from coalescenceml.stack import Stack
@@ -80,7 +82,7 @@ class StepExecutorOperator(BaseExecutorOperator):
         pipeline_node: pipeline_pb2.PipelineNode,
     ) -> List[str]:
         """Collects all requirements necessary to run a step.
-        
+
         Args:
             stack: Stack on which the step is being executed.
             pipeline_node: Pipeline node info for a step.
@@ -107,7 +109,7 @@ class StepExecutorOperator(BaseExecutorOperator):
         pipeline_node: pipeline_pb2.PipelineNode,
     ) -> Tuple[str, str]:
         """Resolves the main and step module.
-        
+
         Args:
             pipeline_node: Pipeline node info for a step.
         Returns:
@@ -134,7 +136,7 @@ class StepExecutorOperator(BaseExecutorOperator):
         stack: Stack, execution_info: data_types.ExecutionInfo
     ) -> "BaseStepOperator":
         """Fetches the step operator specified in the execution info.
-        
+
         Args:
             stack: Stack on which the step is being executed.
             execution_info: Execution info needed to run the step.
@@ -210,7 +212,7 @@ class StepExecutorOperator(BaseExecutorOperator):
             input_name: source_utils.resolve_class(artifacts[0].__class__)
             for input_name, artifacts in execution_info.input_dict.items()
         }
-        yaml_utils.write_json(
+        json_utils.write_json(
             input_artifact_types_path, input_artifact_type_mapping
         )
         entrypoint_command = [

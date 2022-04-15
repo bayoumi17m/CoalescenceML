@@ -1,10 +1,9 @@
-
 def get_human_readable_time(seconds: float) -> str:
     """Convert seconds into a human-readable string.
-    
+
     Args:
         seconds: number of seconds
-    
+
     Returns:
         String that displays time in Days Hours, Minutes, Seconds format
     """

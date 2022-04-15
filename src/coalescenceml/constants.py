@@ -4,30 +4,36 @@ from typing import Optional
 from rich.console import Console
 from rich.theme import Theme
 
+
 coml_custom_theme = Theme(
     {
         "info": "dim cyan",
         "warning": "magenta",
         "danger": "bold red",
         "error": "red",
-        "title": "bold cyan underline"
+        "title": "bold cyan underline",
     }
 )
 
 console = Console(theme=coml_custom_theme, markup=True)
 
+
 def process_bool_env_var(var: str, default: bool = False) -> bool:
     """process_bool_env_car converts env var to boolean.
-    
-    Args
+
+    Args:
         var: the variable to grab from the environment
-        default: 
+        default: value to return if var does not exist
+
+    Returns:
+        boolean value to assign the variable
     """
     value = os.getenv(var)
     if value in {"1", "True", "true"}:
         return True
     else:
         return default
+
 
 # Global
 APP_NAME = "CoalescenceML"
@@ -48,13 +54,11 @@ COML_LOGGING_VERBOSITY: str = "INFO"
 
 if IS_DEBUG_ENV:
     COML_LOGGING_VERBOSITY = os.getenv(
-        ENV_COML_LOGGING_VERBOSITY,
-        default="DEBUG"
+        ENV_COML_LOGGING_VERBOSITY, default="DEBUG"
     ).upper()
 else:
     COML_LOGGING_VERBOSITY = os.getenv(
-        ENV_COML_LOGGING_VERBOSITY,
-        default="INFO"
+        ENV_COML_LOGGING_VERBOSITY, default="INFO"
     ).upper()
 
 REMOTE_FS_PREFIX = ["gs://", "s3://", "az://"]

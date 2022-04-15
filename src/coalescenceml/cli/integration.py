@@ -7,9 +7,9 @@ from rich.progress import track
 from coalescenceml.cli.cli import cli
 from coalescenceml.cli.utils import (
     confirmation,
-    info,
     error,
     format_integration_list,
+    info,
     install_packages,
     print_table,
     title,
@@ -19,6 +19,7 @@ from coalescenceml.cli.utils import (
 from coalescenceml.constants import console
 from coalescenceml.integrations.registry import integration_registry
 from coalescenceml.logger import get_logger
+
 
 logger = get_logger(__name__)
 
@@ -193,7 +194,7 @@ def explain_integrations() -> None:
     with console.pager():
         console.print(
             Markdown(
-"""
+                """
 TODO: Explain in words and with examples about what an integration is and the CLI
 command. This should showcase one of every command probably and the most common
 methods that they will want to use.

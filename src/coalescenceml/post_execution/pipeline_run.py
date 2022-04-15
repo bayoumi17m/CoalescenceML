@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Any, Dict, List
 
@@ -7,9 +8,10 @@ from ml_metadata import proto
 from coalescenceml.enums import ExecutionStatus
 from coalescenceml.logger import get_logger
 
+
 if TYPE_CHECKING:
-    from coalescenceml.post_execution.step import StepView
     from coalescenceml.metadata_store import BaseMetadataStore
+    from coalescenceml.post_execution.step import StepView
 
 logger = get_logger(__name__)
 

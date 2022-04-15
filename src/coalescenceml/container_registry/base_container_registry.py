@@ -13,5 +13,7 @@ class BaseContainerRegistry(StackComponent):
     uri: str
 
     # Class Configuration
-    TYPE: ClassVar[StackComponentFlavor] = StackComponentFlavor.CONTAINER_REGISTRY
+    TYPE: ClassVar[
+        StackComponentFlavor
+    ] = StackComponentFlavor.CONTAINER_REGISTRY
     FLAVOR: ClassVar[str] = "default"

@@ -12,8 +12,8 @@ from coalescenceml.config.profile_config import (
     get_default_store_type,
 )
 from coalescenceml.constants import console
-from coalescenceml.enums import LoggingLevels, DirectoryStoreFlavor
 from coalescenceml.directory import Directory
+from coalescenceml.enums import DirectoryStoreFlavor, LoggingLevels
 
 
 # Logging
@@ -224,9 +224,8 @@ def set_active_profile(name: str, global_profile: bool = False) -> None:
 def get_active_profile() -> None:
     """Get the active profile."""
     with console.status("Getting the active profile..."):
-        cli_utils.info(
-            f"Active profile is: {Directory().active_profile_name}"
-        )
+        cli_utils.info(f"Active profile is: {Directory().active_profile_name}")
+
 
 @profile.command("explain")
 def explain_profile() -> None:
@@ -235,7 +234,7 @@ def explain_profile() -> None:
     with console.pager():
         console.print(
             Markdown(
-"""
+                """
 TODO: Explain in words and with examples about what a profile is and the CLI
 command. This should showcase one of every command probably and the most common
 methods that they will want to use.

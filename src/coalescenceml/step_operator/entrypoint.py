@@ -18,7 +18,7 @@ from coalescenceml.integrations.registry import integration_registry
 from coalescenceml.io import fileio
 from coalescenceml.step import BaseStep
 from coalescenceml.step.utils import _FunctionExecutor, generate_component_class
-from coalescenceml.utils import source_utils, json_utils
+from coalescenceml.utils import json_utils, source_utils
 
 
 def create_executor_class(

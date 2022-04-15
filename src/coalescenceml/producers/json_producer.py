@@ -7,8 +7,10 @@ from coalescenceml.producers.base_producer import BaseProducer
 from coalescenceml.producers.producer_registry import register_producer_class
 from coalescenceml.utils import json_utils
 
+
 logger = get_logger(__name__)
 DEFAULT_FILENAME = "data.json"
+
 
 @register_producer_class
 class JSONProducer(BaseProducer):

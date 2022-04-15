@@ -1,13 +1,4 @@
-from typing import (
-    Callable,
-    List,
-    Optional,
-    Sequence,
-    Type,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Callable, List, Optional, Sequence, Type, TypeVar
 
 from coalescenceml.pipeline.base_pipeline import (
     INSTANCE_CONFIGURATION,
@@ -20,7 +11,9 @@ from coalescenceml.pipeline.base_pipeline import (
     BasePipeline,
 )
 
+
 F = TypeVar("F", bound=Callable[..., None])
+
 
 def pipeline(
     func: F,
@@ -32,8 +25,7 @@ def pipeline(
     dockerignore_file: Optional[str] = None,
     secrets: Optional[List[str]] = [],
 ) -> Type[BasePipeline]:
-    """
-    """
+    """ """
     pipeline_name = name or func.__name__
     return type(
         pipeline_name,

@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import Any, ClassVar
 
 from coalescenceml.enums import StackComponentFlavor
-from coalescenceml.stack import StackComponent
 from coalescenceml.pipeline import BasePipeline
 from coalescenceml.pipeline.runtime_configuration import RuntimeConfiguration
-from coalescenceml.stack import Stack
+from coalescenceml.stack import Stack, StackComponent
 
 
 class BaseOrchestrator(StackComponent, ABC):

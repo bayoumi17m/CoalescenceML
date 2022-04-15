@@ -11,8 +11,11 @@ from pydantic import BaseModel
 from coalescenceml.config.base_config import BaseConfiguration
 from coalescenceml.config.global_config import GlobalConfiguration
 from coalescenceml.config.profile_config import ProfileConfiguration
-from coalescenceml.constants import ENV_COML_DIRECTORY_PATH, DIRECTORY_DIRECTORY_NAME
-from coalescenceml.enums import StackComponentFlavor, DirectoryStoreFlavor
+from coalescenceml.constants import (
+    DIRECTORY_DIRECTORY_NAME,
+    ENV_COML_DIRECTORY_PATH,
+)
+from coalescenceml.enums import DirectoryStoreFlavor, StackComponentFlavor
 from coalescenceml.environment import Environment
 from coalescenceml.exceptions import (
     ForbiddenDirectoryAccessError,
@@ -27,11 +30,9 @@ from coalescenceml.stack_store import (
     LocalStackStore,
     SqlStackStore,
 )
-from coalescenceml.stack_store.model import (
-    StackComponentWrapper,
-    StackWrapper,
-)
+from coalescenceml.stack_store.model import StackComponentWrapper, StackWrapper
 from coalescenceml.utils import yaml_utils
+
 
 logger = get_logger(__name__)
 
@@ -183,7 +184,7 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
                 value.
         """
         cls._global_directory = repo
-    
+
     def get_active_root(self) -> str:
         """Get the currently active path set at the directory root."""
         if not self._root:
@@ -357,9 +358,7 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
         # load the directory configuration file if it exists, otherwise use
         # an empty configuration as default
         if fileio.exists(config_path):
-            logger.debug(
-                f"Loading directory configuration from {config_path}."
-            )
+            logger.debug(f"Loading directory configuration from {config_path}.")
 
             config_dict = yaml_utils.read_yaml(config_path)
             config = DirectoryConfiguration.parse_obj(config_dict)
@@ -382,7 +381,9 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
         yaml_utils.write_yaml(config_path, config_dict)
 
     @staticmethod
-    def get_store_class(type: DirectoryStoreFlavor) -> Optional[Type[BaseStackStore]]:
+    def get_store_class(
+        type: DirectoryStoreFlavor,
+    ) -> Optional[Type[BaseStackStore]]:
         """Returns the class of the given store type."""
         return {
             DirectoryStoreFlavor.LOCAL: LocalStackStore,
@@ -558,7 +559,9 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
         return [self._stack_from_wrapper(s) for s in self.stack_store.stacks]
 
     @property
-    def stack_configurations(self) -> Dict[str, Dict[StackComponentFlavor, str]]:
+    def stack_configurations(
+        self,
+    ) -> Dict[str, Dict[StackComponentFlavor, str]]:
         """Configuration dicts for all stacks registered in this directory.
         This property is intended as a quick way to get information about the
         components of the registered stacks without loading all installed
