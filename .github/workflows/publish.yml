@@ -48,11 +48,11 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          python -m poetry install
+          python -m poetry install --no-dev
 
       - name: Publish
         env: # Or as an environment variable
           PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
           PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         run: |
-          python -m poetry run bash ./scripts/publish.sh
+          bash ./scripts/publish.sh
