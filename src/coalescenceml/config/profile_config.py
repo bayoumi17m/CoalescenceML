@@ -107,6 +107,7 @@ class ProfileConfiguration(BaseModel):
     @property
     def global_config(self) -> GlobalConfiguration:
         """Return the global configuration to which this profile belongs."""
+        from coalescenceml.config.global_config import GlobalConfiguration
         return self._config or GlobalConfiguration()
 
     def activate_stack(self, stack_name: str) -> None:
