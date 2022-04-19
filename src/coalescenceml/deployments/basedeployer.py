@@ -9,7 +9,7 @@ class BaseDeploymentStep(ABC):
     """Base class for a deployment step in a CoML pipeline. """
 
     @abstractmethod
-    def entry_point(self, model_uri: str, registry_path: str, deploy: bool) -> Optional[str]:
+    def entrypoint(self, model_uri: str, registry_path: str, deploy: bool) -> Optional[str]:
         """Deploys model specified by uri, if deploy is True.
 
         The model is built into an image at the given path, pushed

@@ -77,7 +77,7 @@ class KubernetesDeployer(BaseDeploymentStep):
             print("Ingress IP is currently pending, please try again later.")
         return "http://{}".format(ip)
 
-    def entry_point(self, model_uri, registry_path, deploy, suppress_stdout=True):
+    def entrypoint(self, model_uri, registry_path, deploy, suppress_stdout=True):
         if not deploy:
             return None
         self.model_uri = model_uri
@@ -101,7 +101,8 @@ repo = "mlflow-repo"
 
 url = kd.entry_point(
     "s3://coml-mlflow-models/sklearn-regression-model",
-    "us-east1-docker.pkg.dev/{}/{}/sklearn-model".format(project_id, repo),
-    True)
+    "k8s.gcr.io/sklearnmodel",
+    deploy=True,
+    suppress_stdout=False)
 
 print("URL: ", url)
