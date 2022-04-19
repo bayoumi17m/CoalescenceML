@@ -1,12 +1,11 @@
+from step.base_step import BaseStep
 from abc import ABC, abstractmethod
 from modelobject import ModelObject
 from typing import Optional
 
-# inherit base profile step?
 
-
-class BaseDeploymentStep(ABC):
-    """Base class for a deployment step in a CoML pipeline. """
+class BaseDeploymentStep(BaseStep):
+    """Base class for a deployment step in a CoalescenceML pipeline. """
 
     @abstractmethod
     def entrypoint(self, model_uri: str, registry_path: str, deploy: bool) -> Optional[str]:

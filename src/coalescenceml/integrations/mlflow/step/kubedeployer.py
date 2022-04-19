@@ -1,10 +1,11 @@
-from basedeployer import BaseDeploymentStep
+from deployments.base_deploy_step import BaseDeploymentStep
 from config import DeploymentYAMLConfig
 import json
 import subprocess
 
 
 class KubernetesDeployer(BaseDeploymentStep):
+    """Step class for deploying model to Kubernetes."""
 
     def __del__(self):
         self.deploy_log.close()
