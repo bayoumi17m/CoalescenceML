@@ -10,6 +10,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.cluster import KMeans
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.model_selection import train_test_split
+from coalescenceml.step import BaseStep
 
 class SKLearnTrainStep(BaseStep):
     """DOCSTRING"""
