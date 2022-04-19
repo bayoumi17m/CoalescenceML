@@ -49,11 +49,11 @@ jobs:
         run: |
           python -m poetry install
 
-      - name: Lint
-        run: python -m poetry run bash scripts/lint.sh
+          # - name: Lint
+          #   run: python -m poetry run bash scripts/lint.sh
 
-      - name: Test
-        run: python -m poetry run bash scripts/test-coverage.sh
+          # - name: Test
+          #   run: python -m poetry run bash scripts/test-coverage.sh
 
       - name: Publish
         env: # Or as an environment variable
