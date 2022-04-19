@@ -1,3 +1,16 @@
+import typing
+import numpy as np
+import sklearn as sk
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn import tree
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.cluster import KMeans
+from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
+from sklearn.model_selection import train_test_split
+
 class SKLearnTrainStep(BaseStep):
     """DOCSTRING"""
 
