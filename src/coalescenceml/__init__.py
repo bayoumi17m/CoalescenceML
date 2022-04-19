@@ -1,3 +1,6 @@
-# import coalescenceml.logger import init_logging
+__version__: str = "0.1.0"
 
-__version__: str = "0.0.1"
+from coalescenceml.logger import init_logging
+
+
+init_logging()

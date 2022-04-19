@@ -1,0 +1,717 @@
+import collections
+import inspect
+import json
+import random
+from abc import abstractmethod
+from typing import (
+    Any,
+    ClassVar,
+    Counter,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
+
+from tfx.orchestration.portable.base_executor_operator import (
+    BaseExecutorOperator,
+)
+from tfx.orchestration.portable.python_executor_operator import (
+    PythonExecutorOperator,
+)
+from tfx.types.channel import Channel
+
+from coalescenceml.artifacts.base_artifact import BaseArtifact
+from coalescenceml.artifacts.type_registry import type_registry
+from coalescenceml.logger import get_logger
+from coalescenceml.producers.base_producer import BaseProducer
+from coalescenceml.producers.producer_registry import producer_registry
+from coalescenceml.step.base_step_config import BaseStepConfig
+from coalescenceml.step.exceptions import (
+    MissingStepParameterError,
+    StepInterfaceError,
+)
+from coalescenceml.step.output import Output
+from coalescenceml.step.step_context import StepContext
+from coalescenceml.step.utils import (
+    INSTANCE_CONFIGURATION,
+    INTERNAL_EXECUTION_PARAMETER_PREFIX,
+    PARAM_CREATED_BY_FUNCTIONAL_API,
+    PARAM_CUSTOM_STEP_OPERATOR,
+    PARAM_ENABLE_CACHE,
+    PARAM_PIPELINE_PARAMETER_NAME,
+    SINGLE_RETURN_OUT_NAME,
+    _CoMLSimpleComponent,
+    generate_component_class,
+    resolve_type_annotation,
+)
+from coalescenceml.step_operator.step_executor_operator import (
+    StepExecutorOperator,
+)
+from coalescenceml.utils.source_utils import get_hashed_source
+
+
+logger = get_logger(__name__)
+
+
+class BaseStepMeta(type):
+    """Metaclass for `BaseStep`.
+
+    Checks whether everything passed in:
+    * Has a matching producer.
+    * Is a subclass of the Config class
+    """
+
+    def __new__(
+        mcs, name: str, bases: Tuple[Type[Any], ...], dct: Dict[str, Any]
+    ) -> "BaseStepMeta":
+        """Set up a new class with a qualified spec."""
+        dct.setdefault("PARAM_SPEC", {})
+        dct.setdefault("INPUT_SPEC", {})
+        dct.setdefault("OUTPUT_SPEC", {})
+        cls = cast(Type["BaseStep"], super().__new__(mcs, name, bases, dct))
+
+        cls.INPUT_SIGNATURE = {}
+        cls.OUTPUT_SIGNATURE = {}
+        cls.CONFIG_PARAMETER_NAME = None
+        cls.CONFIG_CLASS = None
+        cls.CONTEXT_PARAMETER_NAME = None
+
+        # Get the signature of the step function
+        step_function_signature = inspect.getfullargspec(
+            inspect.unwrap(cls.entrypoint)
+        )
+
+        if bases:
+            # We're not creating the abstract `BaseStep` class
+            # but a concrete implementation. Make sure the step function
+            # signature does not contain variable *args or **kwargs
+            variable_arguments = None
+            if step_function_signature.varargs:
+                variable_arguments = f"*{step_function_signature.varargs}"
+            elif step_function_signature.varkw:
+                variable_arguments = f"**{step_function_signature.varkw}"
+
+            if variable_arguments:
+                raise StepInterfaceError(
+                    f"Unable to create step '{name}' with variable arguments "
+                    f"'{variable_arguments}'. Please make sure your step "
+                    f"functions are defined with a fixed amount of arguments."
+                )
+
+        step_function_args = (
+            step_function_signature.args + step_function_signature.kwonlyargs
+        )
+
+        # Remove 'self' from the signature if it exists
+        if step_function_args and step_function_args[0] == "self":
+            step_function_args.pop(0)
+
+        # Verify the input arguments of the step function
+        for arg in step_function_args:
+            arg_type = step_function_signature.annotations.get(arg, None)
+            arg_type = resolve_type_annotation(arg_type)
+
+            if not arg_type:
+                raise StepInterfaceError(
+                    f"Missing type annotation for argument '{arg}' when "
+                    f"trying to create step '{name}'. Please make sure to "
+                    f"include type annotations for all your step inputs "
+                    f"and outputs."
+                )
+
+            if issubclass(arg_type, BaseStepConfig):
+                # Raise an error if we already found a config in the signature
+                if cls.CONFIG_CLASS is not None:
+                    raise StepInterfaceError(
+                        f"Found multiple configuration arguments "
+                        f"('{cls.CONFIG_PARAMETER_NAME}' and '{arg}') when "
+                        f"trying to create step '{name}'. Please make sure to "
+                        f"only have one `BaseStepConfig` subclass as input "
+                        f"argument for a step."
+                    )
+                cls.CONFIG_PARAMETER_NAME = arg
+                cls.CONFIG_CLASS = arg_type
+
+            elif issubclass(arg_type, StepContext):
+                if cls.CONTEXT_PARAMETER_NAME is not None:
+                    raise StepInterfaceError(
+                        f"Found multiple context arguments "
+                        f"('{cls.CONTEXT_PARAMETER_NAME}' and '{arg}') when "
+                        f"trying to create step '{name}'. Please make sure to "
+                        f"only have one `StepContext` as input "
+                        f"argument for a step."
+                    )
+                cls.CONTEXT_PARAMETER_NAME = arg
+            else:
+                # Can't do any check for existing producers right now
+                # as they might get be defined later, so we simply store the
+                # argument name and type for later use.
+                cls.INPUT_SIGNATURE.update({arg: arg_type})
+
+        # Parse the returns of the step function
+        return_type = step_function_signature.annotations.get("return", None)
+        if return_type is not None:
+            if isinstance(return_type, Output):
+                cls.OUTPUT_SIGNATURE = {
+                    name: resolve_type_annotation(type_)
+                    for (name, type_) in return_type.items()
+                }
+            else:
+                cls.OUTPUT_SIGNATURE[
+                    SINGLE_RETURN_OUT_NAME
+                ] = resolve_type_annotation(return_type)
+
+        # Raise an exception if input and output names of a step overlap as
+        # tfx requires them to be unique
+        # TODO: Can we prefix inputs and outputs to avoid this
+        #  restriction?
+        counter: Counter[str] = collections.Counter()
+        counter.update(list(cls.INPUT_SIGNATURE))
+        counter.update(list(cls.OUTPUT_SIGNATURE))
+        if cls.CONFIG_CLASS:
+            counter.update(list(cls.CONFIG_CLASS.__fields__.keys()))
+
+        shared_keys = {k for k in counter.elements() if counter[k] > 1}
+        if shared_keys:
+            raise StepInterfaceError(
+                f"The following keys are overlapping in the input, output and "
+                f"config parameter names of step '{name}': {shared_keys}. "
+                f"Please make sure that your input, output and config "
+                f"parameter names are unique."
+            )
+
+        return cls
+
+
+T = TypeVar("T", bound="BaseStep")
+
+
+class BaseStep(metaclass=BaseStepMeta):
+    """Abstract base class for all coalescenceml steps.
+
+    Attributes:
+        name: The name of this step.
+        pipeline_parameter_name: The name of the pipeline parameter for which
+            this step was passed as an argument.
+        enable_cache: A boolean indicating if caching is enabled for this step.
+        custom_step_operator: Optional name of a custom step operator to use
+            for this step.
+        requires_context: A boolean indicating if this step requires a
+            `StepContext` object during execution.
+    """
+
+    INPUT_SIGNATURE: ClassVar[Dict[str, Type[Any]]] = None
+    OUTPUT_SIGNATURE: ClassVar[Dict[str, Type[Any]]] = None
+    CONFIG_PARAMETER_NAME: ClassVar[Optional[str]] = None
+    CONFIG_CLASS: ClassVar[Optional[Type[BaseStepConfig]]] = None
+    CONTEXT_PARAMETER_NAME: ClassVar[Optional[str]] = None
+
+    PARAM_SPEC: Dict[str, Any] = {}
+    INPUT_SPEC: Dict[str, Type[BaseArtifact]] = {}
+    OUTPUT_SPEC: Dict[str, Type[BaseArtifact]] = {}
+
+    INSTANCE_CONFIGURATION: Dict[str, Any] = {}
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self.name = self.__class__.__name__
+        self.pipeline_parameter_name: Optional[str] = None
+
+        kwargs.update(getattr(self, INSTANCE_CONFIGURATION))
+
+        self.requires_context = bool(self.CONTEXT_PARAMETER_NAME)
+        self._created_by_functional_api = kwargs.pop(
+            PARAM_CREATED_BY_FUNCTIONAL_API, False
+        )
+        self.custom_step_operator = kwargs.pop(PARAM_CUSTOM_STEP_OPERATOR, None)
+
+        enable_cache = kwargs.pop(PARAM_ENABLE_CACHE, None)
+        if enable_cache is None:
+            if self.requires_context:
+                # Using the StepContext inside a step provides access to
+                # external resources which might influence the step execution.
+                # We therefore disable caching unless it is explicitly enabled
+                enable_cache = False
+                logger.debug(
+                    "Step '%s': Step context required and caching not "
+                    "explicitly enabled.",
+                    self.name,
+                )
+            else:
+                # Default to cache enabled if not explicitly set
+                enable_cache = True
+
+        logger.debug(
+            "Step '%s': Caching %s.",
+            self.name,
+            "enabled" if enable_cache else "disabled",
+        )
+        self.enable_cache = enable_cache
+
+        self._explicit_producers: Dict[str, Type[BaseProducer]] = {}
+        self._component: Optional[_CoMLSimpleComponent] = None
+        self._has_been_called = False
+
+        self._verify_init_arguments(*args, **kwargs)
+        self._verify_output_spec()
+
+    @abstractmethod
+    def entrypoint(self, *args: Any, **kwargs: Any) -> Any:
+        """Abstract method for core step logic."""
+
+    def get_producers(
+        self, ensure_complete: bool = False
+    ) -> Dict[str, Type[BaseProducer]]:
+        """Returns available producers for the outputs of this step.
+
+        Args:
+            ensure_complete: If set to `True`, this method will raise a
+                `StepInterfaceError` if no producer can be found for an
+                output.
+
+        Returns:
+            A dictionary mapping output names to `BaseProducer` subclasses.
+                If no explicit producer was set using
+                `step.with_return_producers(...)`, this checks the
+                default producer registry to find a producer for the
+                type of the output. If no producer is registered, the
+                output of this method will not contain an entry for this output.
+
+        Raises:
+            StepInterfaceError: (Only if `ensure_complete` is set to `True`)
+                If an output does not have an explicit producer assigned
+                to it and there is no default producer registered for
+                the output type.
+        """
+        producers = self._explicit_producers.copy()
+
+        for output_name, output_type in self.OUTPUT_SIGNATURE.items():
+            if output_name in producers:
+                # producer for this output was set explicitly
+                pass
+            elif producer_registry.is_registered(output_type):
+                producer = producer_registry[output_type]
+                producers[output_name] = producer
+            else:
+                if ensure_complete:
+                    raise StepInterfaceError(
+                        f"Unable to find producer for output "
+                        f"'{output_name}' of type `{output_type}` in step "
+                        f"'{self.name}'. Please make sure to either "
+                        f"explicitly set a producer for step outputs "
+                        f"using `step.with_return_producers(...)` or "
+                        f"registering a default producer for specific "
+                        f"types by subclassing `BaseProducer` and setting "
+                        f"its `ASSOCIATED_TYPES` class variable."
+                    )
+
+        return producers
+
+    @property
+    def _internal_execution_parameters(self) -> Dict[str, Any]:
+        """coalescenceml internal execution parameters for this step."""
+        parameters = {
+            PARAM_PIPELINE_PARAMETER_NAME: self.pipeline_parameter_name,
+            PARAM_CUSTOM_STEP_OPERATOR: self.custom_step_operator,
+        }
+
+        if self.enable_cache:
+            # Caching is enabled so we compute a hash of the step function code
+            # and producers to catch changes in the step behavior
+
+            # If the step was defined using the functional api, only track
+            # changes to the entrypoint function. Otherwise track changes to
+            # the entire step class.
+            source_object = (
+                self.entrypoint
+                if self._created_by_functional_api
+                else self.__class__
+            )
+            parameters["step_source"] = get_hashed_source(source_object)
+
+            for name, producer in self.get_producers().items():
+                key = f"{name}_producer_source"
+                parameters[key] = get_hashed_source(producer)
+        else:
+            # Add a random string to the execution properties to disable caching
+            random_string = f"{random.getrandbits(128):032x}"
+            parameters["disable_cache"] = random_string
+
+        return {
+            INTERNAL_EXECUTION_PARAMETER_PREFIX + key: value
+            for key, value in parameters.items()
+        }
+
+    def _verify_init_arguments(self, *args: Any, **kwargs: Any) -> None:
+        """Verifies the initialization args and kwargs of this step.
+
+        This method makes sure that there is only a config object passed at
+        initialization and that it was passed using the correct name and
+        type specified in the step declaration.
+        If the correct config object was found, additionally saves the
+        config parameters to `self.PARAM_SPEC`.
+
+        Args:
+            *args: The args passed to the init method of this step.
+            **kwargs: The kwargs passed to the init method of this step.
+
+        Raises:
+            StepInterfaceError: If there are too many arguments or arguments
+                with a wrong name/type.
+        """
+        maximum_arg_count = 1 if self.CONFIG_CLASS else 0
+        arg_count = len(args) + len(kwargs)
+        if arg_count > maximum_arg_count:
+            raise StepInterfaceError(
+                f"Too many arguments ({arg_count}, expected: "
+                f"{maximum_arg_count}) passed when creating a "
+                f"'{self.name}' step."
+            )
+
+        if self.CONFIG_PARAMETER_NAME and self.CONFIG_CLASS:
+            if args:
+                config = args[0]
+            elif kwargs:
+                key, config = kwargs.popitem()
+
+                if key != self.CONFIG_PARAMETER_NAME:
+                    raise StepInterfaceError(
+                        f"Unknown keyword argument '{key}' when creating a "
+                        f"'{self.name}' step, only expected a single "
+                        f"argument with key '{self.CONFIG_PARAMETER_NAME}'."
+                    )
+            else:
+                # This step requires configuration parameters but no config
+                # object was passed as an argument. The parameters might be
+                # set via default values in the config class or in a
+                # configuration file, so we continue for now and verify
+                # that all parameters are set before running the step
+                return
+
+            if not isinstance(config, self.CONFIG_CLASS):
+                raise StepInterfaceError(
+                    f"`{config}` object passed when creating a "
+                    f"'{self.name}' step is not a "
+                    f"`{self.CONFIG_CLASS.__name__}` instance."
+                )
+
+            self.PARAM_SPEC = config.dict()
+
+    def _verify_output_spec(self) -> None:
+        """Verifies the explicitly set output artifact types of this step.
+
+        Raises:
+            StepInterfaceError: If an output artifact type is specified for a
+                non-existent step output or the artifact type is not allowed
+                for the corresponding output type.
+        """
+        for output_name, artifact_type in self.OUTPUT_SPEC.items():
+            if output_name not in self.OUTPUT_SIGNATURE:
+                raise StepInterfaceError(
+                    f"Found explicit artifact type for unrecognized output "
+                    f"'{output_name}' in step '{self.name}'. Output "
+                    f"artifact types can only be specified for the outputs "
+                    f"of this step: {set(self.OUTPUT_SIGNATURE)}."
+                )
+
+            if not issubclass(artifact_type, BaseArtifact):
+                raise StepInterfaceError(
+                    f"Invalid artifact type ({artifact_type}) for output "
+                    f"'{output_name}' of step '{self.name}'. Only "
+                    f"`BaseArtifact` subclasses are allowed as artifact types."
+                )
+
+            output_type = self.OUTPUT_SIGNATURE[output_name]
+            allowed_artifact_types = set(
+                type_registry.get_artifact_type(output_type)
+            )
+
+            if artifact_type not in allowed_artifact_types:
+                raise StepInterfaceError(
+                    f"Artifact type `{artifact_type}` for output "
+                    f"'{output_name}' of step '{self.name}' is not an "
+                    f"allowed artifact type for the defined output type "
+                    f"`{output_type}`. Allowed artifact types: "
+                    f"{allowed_artifact_types}. If you want to extend the "
+                    f"allowed artifact types, implement a custom "
+                    f"`BaseProducer` subclass and set its "
+                    f"`ASSOCIATED_ARTIFACT_TYPES` and `ASSOCIATED_TYPES` "
+                    f"accordingly."
+                )
+
+    def _update_and_verify_parameter_spec(self) -> None:
+        """Verifies and prepares the config parameters for running this step.
+
+        When the step requires config parameters, this method:
+            - checks if config parameters were set via a config object or file
+            - tries to set missing config parameters from default values of the
+              config class
+
+        Raises:
+            MissingStepParameterError: If no value could be found for one or
+                more config parameters.
+            StepInterfaceError: If a config parameter value couldn't be
+                serialized to json.
+        """
+        if self.CONFIG_CLASS:
+            # we need to store a value for all config keys inside the
+            # metadata store to make sure caching works as expected
+            missing_keys = []
+            for name, field in self.CONFIG_CLASS.__fields__.items():
+                if name in self.PARAM_SPEC:
+                    # a value for this parameter has been set already
+                    continue
+
+                if field.required:
+                    # this field has no default value set and therefore needs
+                    # to be passed via an initialized config object
+                    missing_keys.append(name)
+                else:
+                    # use default value from the pydantic config class
+                    self.PARAM_SPEC[name] = field.default
+
+            if missing_keys:
+                raise MissingStepParameterError(
+                    self.name, missing_keys, self.CONFIG_CLASS
+                )
+
+    def _prepare_input_artifacts(
+        self, *artifacts: Channel, **kw_artifacts: Channel
+    ) -> Dict[str, Channel]:
+        """Verifies and prepares the input artifacts for running this step.
+
+        Args:
+            *artifacts: Positional input artifacts passed to
+                the __call__ method.
+            **kw_artifacts: Keyword input artifacts passed to
+                the __call__ method.
+
+        Returns:
+            Dictionary containing both the positional and keyword input
+            artifacts.
+
+        Raises:
+            StepInterfaceError: If there are too many or too few artifacts.
+        """
+        input_artifact_keys = list(self.INPUT_SIGNATURE.keys())
+        if len(artifacts) > len(input_artifact_keys):
+            raise StepInterfaceError(
+                f"Too many input artifacts for step '{self.name}'. "
+                f"This step expects {len(input_artifact_keys)} artifact(s) "
+                f"but got {len(artifacts) + len(kw_artifacts)}."
+            )
+
+        combined_artifacts = {}
+
+        for i, artifact in enumerate(artifacts):
+            if not isinstance(artifact, Channel):
+                raise StepInterfaceError(
+                    f"Wrong argument type (`{type(artifact)}`) for positional "
+                    f"argument {i} of step '{self.name}'. Only outputs "
+                    f"from previous steps can be used as arguments when "
+                    f"connecting steps."
+                )
+
+            key = input_artifact_keys[i]
+            combined_artifacts[key] = artifact
+
+        for key, artifact in kw_artifacts.items():
+            if key in combined_artifacts:
+                # an artifact for this key was already set by
+                # the positional input artifacts
+                raise StepInterfaceError(
+                    f"Unexpected keyword argument '{key}' for step "
+                    f"'{self.name}'. An artifact for this key was "
+                    f"already passed as a positional argument."
+                )
+
+            if not isinstance(artifact, Channel):
+                raise StepInterfaceError(
+                    f"Wrong argument type (`{type(artifact)}`) for argument "
+                    f"'{key}' of step '{self.name}'. Only outputs from "
+                    f"previous steps can be used as arguments when "
+                    f"connecting steps."
+                )
+
+            combined_artifacts[key] = artifact
+
+        # check if there are any missing or unexpected artifacts
+        expected_artifacts = set(self.INPUT_SIGNATURE.keys())
+        actual_artifacts = set(combined_artifacts.keys())
+        missing_artifacts = expected_artifacts - actual_artifacts
+        unexpected_artifacts = actual_artifacts - expected_artifacts
+
+        if missing_artifacts:
+            raise StepInterfaceError(
+                f"Missing input artifact(s) for step "
+                f"'{self.name}': {missing_artifacts}."
+            )
+
+        if unexpected_artifacts:
+            raise StepInterfaceError(
+                f"Unexpected input artifact(s) for step "
+                f"'{self.name}': {unexpected_artifacts}. This step "
+                f"only requires the following artifacts: {expected_artifacts}."
+            )
+
+        return combined_artifacts
+
+    # TODO: replaces Channels with coalescenceml class (BaseArtifact)
+    # For now we do this for ease with TFX
+    def __call__(
+        self, *artifacts: Channel, **kw_artifacts: Channel
+    ) -> Union[Channel, List[Channel]]:
+        """Generates a component when called."""
+        if self._has_been_called:
+            raise StepInterfaceError(
+                f"Step {self.name} has already been called. A coalescenceml step "
+                f"instance can only be called once per pipeline run."
+            )
+        self._has_been_called = True
+
+        self._update_and_verify_parameter_spec()
+
+        # Prepare the input artifacts and spec
+        input_artifacts = self._prepare_input_artifacts(
+            *artifacts, **kw_artifacts
+        )
+
+        self.INPUT_SPEC = {
+            arg_name: artifact_type.type
+            for arg_name, artifact_type in input_artifacts.items()
+        }
+
+        # make sure we have registered producers for each output
+        producers = self.get_producers(ensure_complete=True)
+
+        # Prepare the output artifacts and spec
+        for key, value in self.OUTPUT_SIGNATURE.items():
+            verified_types = type_registry.get_artifact_type(value)
+            if key not in self.OUTPUT_SPEC:
+                self.OUTPUT_SPEC[key] = verified_types[0]
+
+        execution_parameters = {
+            **self.PARAM_SPEC,
+            **self._internal_execution_parameters,
+        }
+
+        # Convert execution parameter values to strings
+        try:
+            execution_parameters = {
+                k: json.dumps(v) for k, v in execution_parameters.items()
+            }
+        except TypeError as e:
+            raise StepInterfaceError(
+                f"Failed to serialize execution parameters for step "
+                f"'{self.name}'. Please make sure to only use "
+                f"json serializable parameter values."
+            ) from e
+
+        component_class = generate_component_class(
+            step_name=self.name,
+            step_module=self.__module__,
+            input_spec=self.INPUT_SPEC,
+            output_spec=self.OUTPUT_SPEC,
+            execution_parameter_names=set(execution_parameters),
+            step_function=self.entrypoint,
+            producers=producers,
+        )
+        self._component = component_class(
+            **input_artifacts, **execution_parameters
+        )
+
+        # Resolve the returns in the right order.
+        returns = [self.component.outputs[key] for key in self.OUTPUT_SIGNATURE]
+
+        # If its one return we just return the one channel not as a list
+        if len(returns) == 1:
+            return returns[0]
+        else:
+            return returns
+
+    @property
+    def component(self) -> _CoMLSimpleComponent:
+        """Returns a TFX component."""
+        if not self._component:
+            raise StepInterfaceError(
+                "Trying to access the step component "
+                "before creating it via calling the step."
+            )
+        return self._component
+
+    @property
+    def executor_operator(self) -> Type[BaseExecutorOperator]:
+        """Executor operator class that should be used to run this step."""
+        if self.custom_step_operator:
+            return StepExecutorOperator
+        else:
+            return PythonExecutorOperator
+
+    def with_return_producers(
+        self: T,
+        producers: Union[Type[BaseProducer], Dict[str, Type[BaseProducer]]],
+    ) -> T:
+        """Register producers for step outputs.
+
+        If a single producer is passed, it will be used for all step
+        outputs. Otherwise, the dictionary keys specify the output names
+        for which the producers will be used.
+
+        Args:
+            producers: The producers for the outputs of this step.
+
+        Returns:
+            The object that this method was called on.
+
+        Raises:
+            StepInterfaceError: If a producer is not a `BaseProducer`
+                subclass or a producer for a non-existent output is given.
+        """
+
+        def _is_producer_class(value: Any) -> bool:
+            """Checks whether the given object is a `BaseProducer`
+            subclass."""
+            is_class = isinstance(value, type)
+            return is_class and issubclass(value, BaseProducer)
+
+        if isinstance(producers, dict):
+            allowed_output_names = set(self.OUTPUT_SIGNATURE)
+
+            for output_name, producer in producers.items():
+                if output_name not in allowed_output_names:
+                    raise StepInterfaceError(
+                        f"Got unexpected producers for non-existent "
+                        f"output '{output_name}' in step '{self.name}'. "
+                        f"Only producers for the outputs "
+                        f"{allowed_output_names} of this step can"
+                        f" be registered."
+                    )
+
+                if not _is_producer_class(producer):
+                    raise StepInterfaceError(
+                        f"Got unexpected object `{producer}` as "
+                        f"producer for output '{output_name}' of step "
+                        f"'{self.name}'. Only `BaseProducer` "
+                        f"subclasses are allowed."
+                    )
+                self._explicit_producers[output_name] = producer
+
+        elif _is_producer_class(producers):
+            # Set the producer for all outputs of this step
+            self._explicit_producers = {
+                key: producers for key in self.OUTPUT_SIGNATURE
+            }
+        else:
+            raise StepInterfaceError(
+                f"Got unexpected object `{producers}` as output "
+                f"producer for step '{self.name}'. Only "
+                f"`BaseProducer` subclasses or dictionaries mapping "
+                f"output names to `BaseProducer` subclasses are allowed "
+                f"as input when specifying return producers."
+            )
+
+        return self

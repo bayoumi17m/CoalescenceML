@@ -1,12 +1,6 @@
-class CoMLException(Exception):
-    """
-    Generic class for CoalescenceML exceptions.
-    """
+class InitializationException(Exception):
+    """Raised when an error occurred during init of a CoML directory."""
 
-    def __init__(self, message):
-        """
-        Args:
-          message: A message detailing the error that occurred.
-        """
-        self.message = message
-        super().__init__(message)
+
+class ForbiddenDirectoryAccessError(RuntimeError):
+    """Raised when accessing a CoML directory while a step is executed."""
