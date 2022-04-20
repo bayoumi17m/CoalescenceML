@@ -9,12 +9,10 @@ class SKLearnIntegration(Integration):
 
     NAME = SKLEARN
 
-    REQUIREMENTS: List[str] = ["sklearn==1.0.2"]
-
-    SYSTEM_REQUIREMENTS: Dict[str, str] = {}
+    REQUIREMENTS = ["scikit-learn==1.0.2"]
 
     @classmethod
     def activate(cls) -> None:
-        from coalescenceml.integrations.sklearn.producers import SKLearnProducer
+        from coalescenceml.integrations.sklearn import producers
 
 SKLearnIntegration.check_installation()

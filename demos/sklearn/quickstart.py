@@ -1,8 +1,14 @@
 import numpy as np
 
+from sklearn.base import BaseEstimator
+
 from coalescenceml.pipeline import pipeline
 from coalescenceml.step import step, Output
-from coalescenceml.integrations.sklearn.step.sklearn_trainstep import SKLearnTrainStep
+from coalescenceml.integrations.constants import SKLEARN
+from coalescenceml.integrations.sklearn.step import (
+    SKLearnTrainConfig,
+    SKLearnTrainStep,
+)
 
 @step
 def importer() -> Output(
@@ -54,26 +60,35 @@ def trainer(X_train: np.ndarray, y_train: np.ndarray) -> Output(model=np.ndarray
 
 @step
 def evaluator(
-    model: np.ndarray,
+    model: BaseEstimator,
     X_test: np.ndarray,
     y_test: np.ndarray,
 ) -> Output(mse=float):
-    mse = np.mean(np.power(X_test@model - y_test, 2))
+    # mse = np.mean(np.power(X_test@model - y_test, 2))
+    preds = model.predict(X_test)
+    mse = np.mean(np.power(preds - y_test, 2))
     print(f"Test MSE: {mse:.2f}")
     return mse
 
 
-@pipeline(required_integrations=["sklearn"])
+@pipeline(required_integrations=[SKLEARN])
 def sample_pipeline(importer, trainer, evaluator):
     X_train, y_train, X_test, y_test = importer()
-    model = SKLearnTrainStep(X_train, y_train, "linear_reg")
+    model = trainer(x=X_train, y=y_train)
     mse = evaluator(model, X_test, y_test)
 
 
 if __name__ == '__main__':
+    sklearn_train_config = SKLearnTrainConfig(
+        model_name = "linear_reg",
+        hyperparams = {
+            "fit_intercept": False,
+        }
+    )
+
     pipe = sample_pipeline(
             importer=importer(),
-            trainer=trainer(),
+            trainer=SKLearnTrainStep(sklearn_train_config),
             evaluator=evaluator()
         )
     pipe.run()

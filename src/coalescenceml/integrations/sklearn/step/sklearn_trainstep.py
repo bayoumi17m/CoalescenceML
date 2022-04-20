@@ -1,4 +1,5 @@
 import typing
+
 import numpy as np
 import sklearn as sk
 from sklearn.svm import SVC
@@ -10,17 +11,24 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.cluster import KMeans
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.model_selection import train_test_split
+
 from coalescenceml.step import BaseStep
+from coalescenceml.step import BaseStepConfig
+
+
+class SKLearnTrainConfig(BaseStepConfig):
+    model_name: str
+    hyperparams: typing.Dict[str, typing.Any] = {}
+
 
 class SKLearnTrainStep(BaseStep):
     """DOCSTRING"""
 
     def entrypoint(
         self,
+        config: SKLearnTrainConfig,
         x: np.ndarray,
         y: np.ndarray,
-        model_name: typing.AnyStr,
-        hyperparams: typing.Dict = {},
     ) -> BaseEstimator:
         # Possibly change model_type to a classifier model instead of string
         # Possibly log experimental results
@@ -28,6 +36,9 @@ class SKLearnTrainStep(BaseStep):
 
         # Assert x and y have the same number of inputs
         assert x.shape[0] == y.shape[0]
+
+        model_name = config.model_name
+        hyperparams = config.hyperparams
 
         # Create model based on model_name input
         if model_name == "knn":
