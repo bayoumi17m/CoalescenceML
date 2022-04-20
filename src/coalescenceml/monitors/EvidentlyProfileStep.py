@@ -17,10 +17,10 @@ from evidently.dashboard.tabs import DataQualityTab, DataDriftTab, NumTargetDrif
 
 
 class EvidentlyProfileTypes(enum.Enum):
-    DataQualityProfile = 1
-    DataDriftProfile = 2
-    NumTargetDriftProfile = 3
-    CatTargetDriftProfile = 4
+    DataQuality = 1
+    DataDrift = 2
+    NumTargetDrift = 3
+    CatTargetDrift = 4
     RegressionPerformance = 5
     ClassificationPerformance = 6
     ProbClassificationPerformance = 7
@@ -46,10 +46,10 @@ class EvidentlyProfileStep():
     """
     # first check if columns of reference and current are the same
     evidentlyMap = {
-      EvidentlyProfileTypes.DataQualityProfile : [DataQualityTab(), DataQualityProfileSection()],
-      EvidentlyProfileTypes.DataDriftProfile : [],
-      EvidentlyProfileTypes.NumTargetDriftProfile : [NumTargetDriftTab()],
-      EvidentlyProfileTypes.CatTargetDriftProfile : [],
+      EvidentlyProfileTypes.DataQuality : [DataQualityTab(), DataQualityProfileSection()],
+      EvidentlyProfileTypes.DataDrift : [],
+      EvidentlyProfileTypes.NumTargetDrift : [NumTargetDriftTab()],
+      EvidentlyProfileTypes.CatTargetDrift : [],
       EvidentlyProfileTypes.RegressionPerformance : [],
       EvidentlyProfileTypes.ClassificationPerformance: [],
       EvidentlyProfileTypes.ProbClassificationPerformance: [],
