@@ -22,3 +22,4 @@ from coalescenceml.cli.integration import *
 from coalescenceml.cli.stack import *
 from coalescenceml.cli.stack_components import *
 from coalescenceml.cli.version import *
+from coalescenceml.cli.hidden import *
