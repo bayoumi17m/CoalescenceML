@@ -4,7 +4,7 @@ import json
 import pandas
 import enum
 from typing import Optional
-from ProfileConfig import ProfileConfig, TaskType
+from profile_config import ProfileConfig, TaskType
 from evidently.model_profile import Profile
 from evidently.dashboard import Dashboard
 
@@ -56,7 +56,7 @@ class EvidentlyProfileStep():
       Target drift requires a reference, current, and targets and/or preds
       Regression performance requires reference and/or current, and targets AND preds
 
-      Classification + Probabilistic require pred / targets in a specific config ? 
+      Classification + Probabilistic require pred / targets in a specific config 
        - check evidently documentation, also requires inputs (not necessarly just the dataframe - pred)
 
       Returns a json string with all specified profiles included;
@@ -88,16 +88,6 @@ class EvidentlyProfileStep():
       ret = profile.json()
 
     return ret
-    
-
-
-
-
-
-
-
-
-
        
 
 

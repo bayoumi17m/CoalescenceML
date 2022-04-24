@@ -1,8 +1,10 @@
 
 
 import pandas as pd
-from coalescenceml.monitors.EvidentlyProfileStep import EvidentlyProfileStep, EvidentlyProfileTypes
-from coalescenceml.monitors.ProfileConfig import ProfileConfig, TaskType
+from coalescenceml.integrations.evidently.step.evidently_profilestep import \
+  EvidentlyProfileStep, EvidentlyProfileTypes
+from coalescenceml.integrations.evidently.step.profile_config import \
+  ProfileConfig, TaskType
 import numpy as np
 import json
 
@@ -48,4 +50,4 @@ merged_test_data = pd.concat([test_data, test_probas], axis = 1)
 
 config = ProfileConfig(TaskType.Classification, target = "target", profiles=[EvidentlyProfileTypes.DataDrift, EvidentlyProfileTypes.CatTargetDrift]  )   
 
-EvidentlyProfileStep.exec(self, config, merged_train_data, merged_test_data, save_loc="test_dashboard.html")
+html = EvidentlyProfileStep.exec(self, config, merged_train_data, merged_test_data, save_loc="test_dashboard.html")
