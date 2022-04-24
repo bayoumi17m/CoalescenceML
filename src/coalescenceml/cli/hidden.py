@@ -11,8 +11,8 @@ from coalescenceml.logger import get_logger
 @cli.command(name="over", help="Funny joke...hehe", hidden=True)
 def print_deez_nutz_joke()->None:
     deez_nutz = r"""
-      -                                                                                    -
-    _/-\_                                                                                _/-\_
+      -                                                                                     -
+    _/-\_                                                                                 _/-\_
  .-`-:-:-`-.   _____    ______   ______   ______    _   _   _    _   _______   ______  .-`-:-:-`-.
 /-:-:-:-:-:-\ |  __ \  |  ____| |  ____| |___  /   | \ | | | |  | | |__   __| |___  / /-:-:-:-:-:-\
 \:-:-:-:-:-:/ | |  | | | |__    | |__       / /    |  \| | | |  | |    | |       / /  \:-:-:-:-:-:/
@@ -24,7 +24,7 @@ def print_deez_nutz_joke()->None:
     max_width = console.width
     deez_nutz_width = console.measure(deez_nutz).maximum
     styling = "bold cyan"
-    console.print("coml over...", style="cyan", justify="center")
+    console.print("coml over...", style="cyan", justify="left")
     with console.status("", spinner="monkey"):
         time.sleep(5)
 
