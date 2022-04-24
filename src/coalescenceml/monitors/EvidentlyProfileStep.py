@@ -4,16 +4,19 @@ import json
 import pandas
 import enum
 from typing import Optional
-from coalescenceml.monitors.ProfileConfig import ProfileConfig
+from ProfileConfig import ProfileConfig, TaskType
 from evidently.model_profile import Profile
 from evidently.dashboard import Dashboard
 
 from evidently import ColumnMapping
 
-from evidently.model_profile.sections import DataQualityProfileSection, DataDriftProfileSection, NumTargetDriftSection
-from evidently.dashboard.tabs import DataQualityTab, DataDriftTab, NumTargetDriftTab
-
-
+from evidently.model_profile.sections import DataQualityProfileSection, \
+  DataDriftProfileSection, NumTargetDriftProfileSection, CatTargetDriftProfileSection,\
+  RegressionPerformanceProfileSection, ClassificationPerformanceProfileSection,\
+  ProbClassificationPerformanceProfileSection 
+from evidently.dashboard.tabs import DataQualityTab, DataDriftTab, \
+  NumTargetDriftTab, CatTargetDriftTab, RegressionPerformanceTab, \
+  ClassificationPerformanceTab, ProbClassificationPerformanceTab
 
 
 class EvidentlyProfileTypes(enum.Enum):
@@ -26,6 +29,21 @@ class EvidentlyProfileTypes(enum.Enum):
     ProbClassificationPerformance = 7
 
 class EvidentlyProfileStep():
+  def getColumnMapping(self, config : ProfileConfig):
+    column_mapping = ColumnMapping()
+
+    column_mapping.target = config.target #'y' is the name of the column with the target function
+    column_mapping.prediction = config.prediction #'pred' is the name of the column(s) with model predictions
+    column_mapping.id = config.id #there is no ID column in the dataset
+    column_mapping.datetime = config.datetime #'date' is the name of the column with datetime 
+
+    column_mapping.numerical_features = config.numerical_features #list of numerical features
+    column_mapping.categorical_features = config.categorical_features #list of categorical features
+
+    column_mapping.task = 'classification' if config.task == TaskType.Classification else 'regression'
+
+    return column_mapping
+
   def exec(self,
       profileConfig : ProfileConfig, 
       reference : pandas.core.frame.DataFrame, 
@@ -47,12 +65,12 @@ class EvidentlyProfileStep():
     # first check if columns of reference and current are the same
     evidentlyMap = {
       EvidentlyProfileTypes.DataQuality : [DataQualityTab(), DataQualityProfileSection()],
-      EvidentlyProfileTypes.DataDrift : [],
-      EvidentlyProfileTypes.NumTargetDrift : [NumTargetDriftTab()],
-      EvidentlyProfileTypes.CatTargetDrift : [],
-      EvidentlyProfileTypes.RegressionPerformance : [],
-      EvidentlyProfileTypes.ClassificationPerformance: [],
-      EvidentlyProfileTypes.ProbClassificationPerformance: [],
+      EvidentlyProfileTypes.DataDrift : [DataDriftTab(), DataDriftProfileSection()],
+      EvidentlyProfileTypes.NumTargetDrift : [NumTargetDriftTab(), NumTargetDriftProfileSection()],
+      EvidentlyProfileTypes.CatTargetDrift : [CatTargetDriftTab(), CatTargetDriftProfileSection()],
+      EvidentlyProfileTypes.RegressionPerformance : [RegressionPerformanceTab(), RegressionPerformanceProfileSection()],
+      EvidentlyProfileTypes.ClassificationPerformance: [ClassificationPerformanceTab(), ClassificationPerformanceProfileSection()],
+      EvidentlyProfileTypes.ProbClassificationPerformance: [ProbClassificationPerformanceTab(), ProbClassificationPerformanceProfileSection()],
     }
     # build tabs based on successful input 
     tabs = []
@@ -61,13 +79,16 @@ class EvidentlyProfileStep():
 
     if not json:
       dashboard = Dashboard(tabs=tabs)
-      dashboard.calculate(reference, current, column_mapping=profileConfig.column_mapping)
+      dashboard.calculate(reference, current, column_mapping=self.getColumnMapping(profileConfig))
       dashboard.save(save_loc)
+      ret = dashboard.html()
     else:
       profile = Profile(sections=tabs)
-      profile.calculate(reference, current, column_mapping=profileConfig.column_mapping)
+      profile.calculate(reference, current, column_mapping=self.getColumnMapping(profileConfig))
       ret = profile.json()
 
+    return ret
+    
 
 
 
