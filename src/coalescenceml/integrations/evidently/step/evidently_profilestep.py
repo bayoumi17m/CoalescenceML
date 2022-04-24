@@ -4,6 +4,7 @@ import json
 import pandas
 import enum
 from typing import Optional
+from coalescenceml.step.base_step import BaseStep
 from profile_config import ProfileConfig, TaskType
 from evidently.model_profile import Profile
 from evidently.dashboard import Dashboard
@@ -28,7 +29,7 @@ class EvidentlyProfileTypes(enum.Enum):
     ClassificationPerformance = 6
     ProbClassificationPerformance = 7
 
-class EvidentlyProfileStep():
+class EvidentlyProfileStep(BaseStep):
   def getColumnMapping(self, config : ProfileConfig):
     column_mapping = ColumnMapping()
 
@@ -44,7 +45,7 @@ class EvidentlyProfileStep():
 
     return column_mapping
 
-  def exec(self,
+  def entrypoint(self,
       profileConfig : ProfileConfig, 
       reference : pandas.core.frame.DataFrame, 
       current : pandas.core.frame.DataFrame,
