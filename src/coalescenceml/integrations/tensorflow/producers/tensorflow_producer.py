@@ -33,4 +33,4 @@ class TFProducer(BaseProducer):
         super().handle_return(model)
         filepath = os.path.join(self.artifact.uri, DEFAULT_FILENAME)
         with fileio.open(filepath, "wb") as fp:
-            tf.keras.models.save_model(filepath)
+            model.save_model(filepath)
