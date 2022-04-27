@@ -6,3 +6,4 @@ learning libraries like PyTorch.
 # Imports here when we have them lol
 from coalescenceml.integrations.sklearn import SKLearnIntegration
 from coalescenceml.integrations.statsmodels import StatsmodelsIntegration
+from coalescenceml.integrations.xgboost import XgboostIntegration
