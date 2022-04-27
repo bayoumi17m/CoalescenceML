@@ -7,11 +7,13 @@ import xgboost as xgb
 from coalescenceml.artifacts import ModelArtifact
 from coalescenceml.io import fileio
 from coalescenceml.producers import BaseProducer
+from coalescenceml.producers.producer_registry import register_producer_class
 
 
 DEFAULT_FILENAME = "model.xgb.json"
 
 
+@register_producer_class
 class XgboostBoosterProducer(BaseProducer):
     """Producer to read and write from xgboost.Booster."""
 
@@ -30,12 +32,13 @@ class XgboostBoosterProducer(BaseProducer):
         super().handle_input(data_type)
         filepath = os.path.join(self.artifact.uri, DEFAULT_FILENAME)
 
-        # Create temp file
-        with tempfile.NamedTemporaryFile(mode="w", delete=True) as tempfile:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_file = os.path.join(temp_dir, DEFAULT_FILENAME)
+            # Create temp file
             # Copy from artifact store to temp file
-            fileio.copy(filepath, tempfile.name)
+            fileio.copy(filepath, temp_file)
             booster = xgb.Booster()
-            booster.load_model(tempfile.name)
+            booster.load_model(temp_file)
 
         return booster
 
@@ -50,8 +53,8 @@ class XgboostBoosterProducer(BaseProducer):
         filepath = os.path.join(self.artifact.uri, DEFAULT_FILENAME)
 
         # Make temp artifact
-        with tempfile.NamedTemporaryFile(mode="w", delete=True) as tempfile:
-            booster.save_model(tempfile.name)
+        with tempfile.NamedTemporaryFile(suffix=".json", mode="w", delete=True) as temp_file:
+            booster.save_model(temp_file.name)
 
             # copy file
-            fileio.copy(tempfile.name, filepath)
+            fileio.copy(temp_file.name, filepath)
