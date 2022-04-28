@@ -1,9 +1,9 @@
-from os.path import join
+import os
 
-TEMPLATE_DIR = "templates"
-DEPLOYMENT_TEMPLATE_FILE = join(TEMPLATE_DIR, "deploy_template.yaml")
+TEMPLATE_DIR = "deploy_templates"
+DEPLOYMENT_TEMPLATE_FILE = os.path.join(TEMPLATE_DIR, "deploy_template.yaml")
 DEPLOYMENT_OUTPUT_FILE = "deployment.yaml"
-SERVICE_TEMPLATE_FILE = join(TEMPLATE_DIR, "service_template.yaml")
+SERVICE_TEMPLATE_FILE = os.path.join(TEMPLATE_DIR, "service_template.yaml")
 SERVICE_OUTPUT_FILE = "service.yaml"
 
 
@@ -50,3 +50,13 @@ class DeploymentYAMLConfig:
             SERVICE_TEMPLATE_FILE,
             SERVICE_OUTPUT_FILE,
             [("DEPLOYMENT_NAME", self.deployment_name), ("SERVICE_NAME", service_name)])
+
+    def remove_safe(self, file):
+        """Removes a file if it exists."""
+        if os.path.exists(file):
+            os.remove(file)
+
+    def cleanup(self):
+        """Removes the generated yaml files."""
+        self.remove_safe(DEPLOYMENT_OUTPUT_FILE)
+        self.remove_safe(SERVICE_OUTPUT_FILE)

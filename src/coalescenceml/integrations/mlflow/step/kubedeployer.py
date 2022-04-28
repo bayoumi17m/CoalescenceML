@@ -1,12 +1,17 @@
 from coalescenceml.logger import get_logger
 from coalescenceml.model_deployments.base_deploy_step import BaseDeploymentStep
-from config import DeploymentYAMLConfig
+from coalescenceml.integrations.mlflow.step.yaml_config import DeploymentYAMLConfig
+from coalescenceml.step import BaseStepConfig
 import json
 import subprocess
+from sklearn.base import BaseEstimator
 from typing import Any, Dict
 
 logger = get_logger(__name__)
 
+class KubernetesDeployerConfig(BaseStepConfig):
+    registry_path: str
+    deploy: bool
 
 class KubernetesDeployer(BaseDeploymentStep):
     """Step class for deploying model to Kubernetes."""
@@ -18,7 +23,6 @@ class KubernetesDeployer(BaseDeploymentStep):
             logger.error(f"Command failed: {proc.stderr}")
             exit(1)
 
-    # Change to custom Flask app instead of mlflow build-docker
     def build_model_image(self):
         """Builds a docker image that serves the model.
 
@@ -36,9 +40,10 @@ class KubernetesDeployer(BaseDeploymentStep):
 
     def config_deployment(self):
         """Configures the deployment.yaml and service.yaml files for deployment."""
-        config = DeploymentYAMLConfig(self.deployment_name, self.registry_path)
-        config.create_deployment_yaml()
-        config.create_service_yaml()
+        self.yaml_config = DeploymentYAMLConfig(
+            self.deployment_name, self.registry_path)
+        self.yaml_config.create_deployment_yaml()
+        self.yaml_config.create_service_yaml()
 
     def deploy(self):
         """Applies the deployment and service yamls."""
@@ -52,28 +57,17 @@ class KubernetesDeployer(BaseDeploymentStep):
                            self.service_name, "--output=json"], capture_output=True)
         return json.loads(p.stdout)
 
-    def entrypoint(self, model_uri: str, registry_path: str, deploy: bool) -> Dict[str, Any]:
-        if not deploy:
+    def entrypoint(self, config: KubernetesDeployerConfig, model: BaseEstimator) -> Dict[str, Any]:
+        if not config.deploy:
             return None
-        self.model_uri = model_uri
-        self.registry_path = registry_path
+        self.model_uri = model_uri # Change
+        self.registry_path = config.registry_path
         self.deployment_name = "mlflow-deployment"
         self.service_name = "mlflow-deployment-service"
         self.build_model_image()
         self.push_image()
         self.config_deployment()
         self.deploy()
+        self.yaml_config.cleanup()
         deployment_info = self.get_deployment_info()
         return deployment_info
-
-
-kd = KubernetesDeployer()
-
-
-deployment_info = kd.entrypoint(
-    "s3://coml-mlflow-models/sklearn-regression-model",
-    "us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model",
-    deploy=True
-)
-
-print(deployment_info)
