@@ -44,7 +44,8 @@ def trainer(X_train: np.ndarray, y_train: np.ndarray) -> Output(model=BaseEstima
 def sample_pipeline(importer, trainer):
     X_train, y_train, X_test, y_test = importer()
     model = trainer(X_train, y_train)
-    mlflow.sklearn.log_model(model, "model")
+    with mlflow.start_run():
+        mlflow.pyfunc.log_model(model, "model")
     # deploy_info = deployer(
     #     model_uri="s3://coml-mlflow-models/sklearn-regression-model",
     #     registry_path="us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model",
