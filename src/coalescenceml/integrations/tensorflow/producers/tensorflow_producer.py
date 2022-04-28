@@ -1,7 +1,5 @@
 import os
-import pickle
-import sklearn as sk
-from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
+import tensorflow as tf
 from typing import Any, Type
 
 from coalescenceml.artifacts import ModelArtifact
@@ -12,29 +10,27 @@ from coalescenceml.producers.producer_registry import register_producer_class
 
 
 logger = get_logger(__name__)
-DEFAULT_FILENAME = "data.sav"
+DEFAULT_FILENAME = "data.h5"
 
 
 @register_producer_class
-class SKLearnProducer(BaseProducer):
-    """Read/Write SKLearn files."""
+class TFProducer(BaseProducer):
+    """Read/Write TensorFlow files."""
 
-    ARTIFACT_TYPES = (
-        ModelArtifact,
-    )
-    TYPES = (BaseEstimator,)
+    ARTIFACT_TYPES = (ModelArtifact,)
+    TYPES = (tf.keras.Model,)
 
-    def handle_input(self, data_type: Type[Any]) -> BaseEstimator:
-        """Reads sklearn model from sav file."""
+    def handle_input(self, data_type: Type[Any]) -> tf.keras.Model:
+        """Reads keras model from h5 file."""
         super().handle_input(data_type)
         filepath = os.path.join(self.artifact.uri, DEFAULT_FILENAME)
         with fileio.open(filepath, "rb") as fp:
-            contents = pickle.load(fp)
+            contents = tf.keras.models.load_model(fp)
         return contents
 
-    def handle_return(self, model: BaseEstimator) -> None:
-        """Writes a sklearn model to artifact store as sav"""
+    def handle_return(self, model: tf.keras.Model) -> None:
+        """Writes a keras model to artifact store as h5"""
         super().handle_return(model)
         filepath = os.path.join(self.artifact.uri, DEFAULT_FILENAME)
         with fileio.open(filepath, "wb") as fp:
-            pickle.dump(model, fp)
+            model.save_model(filepath)
