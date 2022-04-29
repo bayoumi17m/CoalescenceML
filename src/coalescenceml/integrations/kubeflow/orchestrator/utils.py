@@ -24,7 +24,6 @@ from tfx.dsl.compiler.compiler import Compiler
 from tfx.dsl.compiler.constants import PIPELINE_RUN_ID_PARAMETER_NAME
 from tfx.dsl.components.base import base_component
 from tfx.orchestration import metadata
-from tfx.orchestration.local import runner_utils
 from tfx.orchestration.pipeline import Pipeline as TfxPipeline
 from tfx.orchestration import pipeline as tfx_kf_pipeline
 from tfx.orchestration.portable import launcher, runtime_parameter_utils
@@ -81,4 +80,5 @@ def create_kfp_pipeline(coalescenceml_pipeline: BasePipeline, stack: Stack, runt
     # artifact_store = stack.artifact_store
     # metadata_store = stack.metadata_store
 
+    # TODO: Figure out when it's ok just to use a pipeline func vs a workflow spec for kubeflow (workflow spec requires passing it through compiler)
     return kfp_runner._construct_pipeline_graph(tfx_pipeline, dsl_pipeline_root)

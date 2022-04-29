@@ -21,25 +21,66 @@ from tfx.orchestration.kubeflow import kubeflow_dag_runner
 from coalescenceml.directory import Directory
 from coalescenceml.enums import MetadataContextFlavor
 from coalescenceml.logger import get_logger
-from coalescenceml.orchestrator import BaseOrchestrator, kubeflow_stack_component
-from coalescenceml.integrations.kubeflow import utils
+from coalescenceml.integrations.kubeflow import orchestrator
+from coalescenceml.orchestrator import BaseOrchestrator
+from coalescenceml.integrations.kubeflow.orchestrator import utils
 
 if TYPE_CHECKING:
     from coalescenceml.pipeline.base_pipeline import BasePipeline
     from coalescenceml.pipeline.runtime_configuration import (
         RuntimeConfiguration,
     )
-    from coalescenceml.stack import Stack
+    from coalescenceml.stack import Stack, StackValidator
 
 
 logger = get_logger(__name__)
 
 
+class KubeflowStackValidator(StackValidator):
+    """
+      Abstract Stack Validator that validates stack compatibility with Kubeflow
+    """
+    def validate(stack: Stack) -> bool:
+        """
+        Validates the stack to ensure all is compatible with KubeFlow
+        """
+        for component in stack:
+            # check each component for compatibility with Kubeflow
+            pass
+        return True
+
+
 class kubeflowOrchestrator(BaseOrchestrator):
-    """Orchestrator responsible for running pipelines locally."""
+    """Orchestrator responsible for running pipelines on Kubeflow."""
 
     # Class Configuration
     FLAVOR: ClassVar[str] = "kubeflow"
+
+    def prepare_pipeline_deployment(
+        self,
+        pipeline: BasePipeline,
+        stack: Stack,
+        runtime_configuration: RuntimeConfiguration,
+    ) -> None:
+        """Prepares deploying the pipeline.
+
+        Args:
+            pipeline: The pipeline to be deployed.
+            stack: The stack to be deployed.
+            runtime_configuration: The runtime configuration to be used.
+        """
+
+        # Containerize all steps using docker utils helper functions
+        for step in pipeline.steps:
+            # step.containerize()
+            # step.componentize() - creates either a string or yaml file that
+            # contains the spec for each step for kubeflow
+            pass
+
+    @property
+    def validator(self) -> StackValidator:
+        """Returns the validator for this component."""
+        return KubeflowStackValidator()
 
     def run_pipeline(
         self,
