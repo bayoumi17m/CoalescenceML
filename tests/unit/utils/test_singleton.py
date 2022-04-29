@@ -16,7 +16,7 @@ def test_singleton_class_init_used_once(mocker):
 
     # Clear instance
     SingletonClass._clear()
-    SingetonClass()
+    SingletonClass()
     SingletonClass.__init__.assert_called_once()
     SingletonClass()
     SingletonClass.__init__.assert_called_once()
