@@ -5,6 +5,7 @@ AZUREML = "azureml"  # Step controller (training)
 EVIDENTLY = "evidently"  # Profiling
 GCP = "gcp"  # Artifact store
 KUBEFLOW = "kubeflow"  # Orchestrator, Metadata store
+LIGHTGBM = "lightgbm" # Producer
 MLFLOW = "mlflow"  # Deployer, logging, context
 PYTORCH = "pytorch"  # Special producers
 PYTORCH_L = "pytorch_lightning"  # Special producers

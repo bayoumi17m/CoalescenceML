@@ -1,0 +1,59 @@
+import os
+import tempfile
+from typing import Any, Type
+
+import lightgbm as lgb
+
+from coalescenceml.artifacts import ModelArtifact
+from coalescenceml.io import fileio
+from coalescenceml.producers import BaseProducer
+from coalescenceml.producers.producer_registry import register_producer_class
+
+
+DEFAULT_FILENAME = "model.lgbm.txt"
+
+
+@register_producer_class
+class LightGBMBoosterProducer(BaseProducer):
+    """Producer to read and write from xgboost.Booster."""
+
+    TYPES = (lgb.Booster,)
+    ARTIFACT_TYPES = (ModelArtifact,)
+
+    def handle_input(self, data_type: Type[Any]) -> lgb.Booster:
+        """Read LightGBM Booster model from JSON file.
+
+        Args:
+            data_type: Data type to be processed.
+
+        Returns:
+            LightGBM Booster model
+        """
+        super().handle_input(data_type)
+        filepath = os.path.join(self.artifact.uri, DEFAULT_FILENAME)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_file = os.path.join(temp_dir, DEFAULT_FILENAME)
+            # Create temp file
+            # Copy from artifact store to temp file
+            fileio.copy(filepath, temp_file)
+            booster = lgb.Booster(model_file=temp_file)
+
+        return booster
+
+    def handle_return(self, booster: lgb.Booster) -> None:
+        """Create JSON file for Booster.
+
+        Args:
+            booster: An LightGBM Booster model
+        """
+        super().handle_return(booster)
+
+        filepath = os.path.join(self.artifact.uri, DEFAULT_FILENAME)
+
+        # Make temp artifact
+        with tempfile.NamedTemporaryFile(suffix=".txt", mode="w", delete=True) as temp_file:
+            booster.save_model(temp_file.name)
+
+            # copy file
+            fileio.copy(temp_file.name, filepath)

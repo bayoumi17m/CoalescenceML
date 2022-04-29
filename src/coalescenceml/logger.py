@@ -1,3 +1,4 @@
+import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from typing import Any, Dict, List
@@ -50,9 +51,9 @@ class CustomFormatter(logging.Formatter):
             A string formatted according to specifications.
         """
         log_fmt = (
-            self.COLORS[LoggingLevels[COML_LOGGING_VERBOSITY]] +
-            self.format_template +
-            self.reset
+            #self.COLORS[LoggingLevels[COML_LOGGING_VERBOSITY]] +
+            self.format_template #+
+            #self.reset
         )
 
         formatter = logging.Formatter(log_fmt)
@@ -145,9 +146,11 @@ def set_root_verbosity() -> None:
 
 def init_logging() -> None:
     """Initialize logging with default configuration."""
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3" # Mute TF Cuda warnings
     set_root_verbosity()
 
-    muted_loggers: List[str] = []
+    muted_loggers: List[str] = [
+    ]
     for logger_name in muted_loggers:
         logging.getLogger(logger_name).setLevel(logging.WARNING)
         logging.getLogger(logger_name).disabled = True

@@ -4,5 +4,6 @@ support. This includes orchestrators like Apache Airflow as well as deep
 learning libraries like PyTorch.
 """
 # Imports here when we have them lol
+from coalescenceml.integrations.lightgbm import LightGBMIntegration
 from coalescenceml.integrations.sklearn import SKLearnIntegration
 from coalescenceml.integrations.statsmodels import StatsmodelsIntegration
