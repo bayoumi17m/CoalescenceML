@@ -148,4 +148,6 @@ class LocalOrchestrator(BaseOrchestrator):
                 custom_driver_spec=custom_driver_spec,
                 custom_executor_operators=custom_executor_operators,
             )
+            stack.prepare_step_run()
             utils.execute_step(component_launcher)
+            stack.cleanup_step_run()

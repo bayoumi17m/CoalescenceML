@@ -39,6 +39,7 @@ class BaseMetadataStore(StackComponent, ABC):
 
     # Class Configuration
     TYPE: ClassVar[StackComponentFlavor] = StackComponentFlavor.METADATA_STORE
+    FLAVOR: ClassVar[str]
 
     @property
     def store(self) -> metadata_store.MetadataStore:
