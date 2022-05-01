@@ -4,6 +4,7 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from keras.callbacks import EarlyStopping, ModelCheckpoint
+from coalescenceml.step import BaseStep
 
 # https://www.youtube.com/watch?v=cJ3oqHqRBF0
 class TFClassifierTrainStep(BaseStep):
