@@ -1,3 +1,6 @@
-from coalescenceml.integrations.tensorflow.producers.tensorflow_producer import (
-    TFProducer
+from coalescenceml.integrations.tensorflow.producers.keras_model_producer import (
+    KerasModelProducer,
+)
+from coalescenceml.integrations.tensorflow.producers.tf_dataset_producer import (
+    TensorflowDatasetProducer,
 )
