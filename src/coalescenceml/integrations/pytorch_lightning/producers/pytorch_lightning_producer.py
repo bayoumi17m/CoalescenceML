@@ -19,14 +19,14 @@ class PyTorchLightningProducer(BaseProducer):
 
     ARTIFACT_TYPES = (ModelArtifact,)
     TYPES = (pl.Trainer)
-    
+
     def handle_input(self, data_type: Type[Any]) -> pl.Trainer:
         """Reads PyTorch Lightning trainer from ckpt file."""
         super().handle_input(data_type)
         filepath = os.path.join(self.artifact.uri, DEFAULT_FILENAME)
         with fileio.open(filepath, "rb") as fp:
         # resume_from_checkpoint will be deprecated in v2.0
-            trainer = Trainer.fit(checkpoint_path=fp)
+            trainer = Trainer.resume_from_checkpoint(checkpoint_path=fp)
         return trainer
 
     def handle_return(self, trainer: pl.Trainer) -> None:
