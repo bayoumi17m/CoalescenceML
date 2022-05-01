@@ -5,3 +5,4 @@ learning libraries like PyTorch.
 """
 # Imports here when we have them lol
 from coalescenceml.integrations.sklearn import SKLearnIntegration
+from coalescenceml.integrations.tensorflow import TFIntegration

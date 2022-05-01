@@ -1,9 +1,9 @@
 from coalescenceml.integrations.tensorflow.step.tensorflow_trainstep import (
-    TFClassifierTrainConfig,
+    TFClassifierConfig,
     TFClassifierTrainStep,
 )
 
 __all__ = [
-    "TFClassifierTrainConfig",
+    "TFClassifierConfig",
     "TFClassifierTrainStep",
 ]

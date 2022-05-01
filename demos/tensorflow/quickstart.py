@@ -22,7 +22,7 @@ def importer() -> Output(
 
 
 @step
-def trainer(X_train: np.ndarray, y_train: np.ndarray) -> Output(model=tf.keras.Model):
+def tf_trainer(X_train: np.ndarray, y_train: np.ndarray) -> Output(model=tf.keras.Model):
     model = tf.keras.sequential(
         [
             tf.keras.layers.Flatten(input_shape=(28,28)),
@@ -34,13 +34,14 @@ def trainer(X_train: np.ndarray, y_train: np.ndarray) -> Output(model=tf.keras.M
     model.compile(
         optimizer=tf.keras.optimizers.SGD(learning_rate=1e-3, momentum=0.9),
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-        metrics=["accuracy"],
+        metrics=[tf.keras.metrics.Accuracy()],
     )
 
     model.fit(
         X_train,
         y_train,
-        epochs=5,
+        epochs=10,
+        batch_size=32,
     )
 
     return model
@@ -64,16 +65,26 @@ def sample_pipeline(importer, trainer, evaluator):
 
 
 if __name__ == '__main__':
-    tf_train_config = TFClassifierTrainConfig(
-        layers = [8, 4],
-        hyperparams = {
-          "epochs": 256, "batch_size": 10
-        }
+    tf_train_config = TFClassifierConfig(
+        layers = [10,],
+        input_shape = (28, 28),
+        num_classes=10,
+        epochs=10,
+        batch_size=32,
+        learning_rate=1e-3,
     )
 
-    pipe = sample_pipeline(
+    pipe_1 = sample_pipeline(
             importer=importer(),
             trainer=TFClassifierTrainStep(TFClassifierTrainConfig),
             evaluator=evaluator()
         )
-    pipe.run()
+    pipe_1.run()
+
+
+    pipe_2 = sample_pipeline(
+        importer=importer(),
+        trainer=tf_trainer(),
+        evaluator=tf_evaluator(),
+    )
+    pipe_2.run()

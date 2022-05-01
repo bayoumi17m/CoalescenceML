@@ -9,7 +9,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from coalescenceml.step import BaseStep
 from coalescenceml.step import BaseStepConfig
 
-class TFClassifierTrainConfig(BaseStepConfig):
+class TFClassifierConfig(BaseStepConfig):
     layers: typing.List
     input_shape: Tuple[int, ...] = (28,28) # MNIST Size
     num_classes: int = 2
@@ -27,7 +27,7 @@ class TFClassifierTrainConfig(BaseStepConfig):
     batch_size: int = 32
 
 
-class TFClassifierStep(BaseStep):
+class TFClassifierTrainStep(BaseStep):
     def entrypoint(
         self,
         config: TFClassifierTrainConfig,
@@ -63,44 +63,38 @@ class TFClassifierStep(BaseStep):
             metrics=config.metrics,
         )
 
-        if len(x_validation) == 0:
-            callback_a = ModelCheckpoint(
-                filepath="my_best_model.hdf5",
-                monitor="loss",
+        if x_validation:
+            checkpoint_callback = ModelCheckpoint(
+                filepath="best_model.hdf5",
+                monitor="val_accuracy",
                 save_best_only=True,
                 save_weights_only=True,
             )
-            callback_b = EarlyStopping(
-                monitor="loss", mode="min", patience=20, verbose=1
-            )
-
-            # Train model
-            model.fit(
-                x_train,
-                y_train,
-                callbacks=[callback_a, callback_b],
-                verbose=0
+            early_stop = EarlyStopping(
+                monitor="val_accuracy",
+                mode="max",
+                patience=20,
             )
         else:
-            callback_a = ModelCheckpoint(
-                filepath="my_best_model.hdf5",
-                monitor="val_loss",
+            checkpoint_callback = ModelCheckpoint(
+                filepath="best_model.hdf5",
+                monitor="accuracy",
                 save_best_only=True,
                 save_weights_only=True,
             )
-            callback_b = EarlyStopping(
-                monitor="val_loss", mode="min", patience=20, verbose=1
+            early_stop = EarlyStopping(
+                monitor="accuracy", mode="max", patience=20,
             )
 
-            # Train model
-            model.fit(
-                x_train,
-                y_train,
-                validation_data={x_validation, y_validation} ** hyperparams,
-                callbacks=[callback_a, callback_b],
-                verbose=0,
-            )
+        model.fit(
+            x_train,
+            y_train,
+            batch_size=config.batch_size,
+            epochs=config.epochs,
+            callbacks=[checkpoint_callback, early_stop],
+            validation_data=((x_validation, y_validation) if x_validation else None),
+        )
 
-        model.load_weights("my_best_model.hdf5")
+        model.load_weights("best_model.hdf5")
 
         return model

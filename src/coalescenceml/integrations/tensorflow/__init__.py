@@ -9,7 +9,7 @@ class TFIntegration(Integration):
 
     NAME = TENSORFLOW
 
-    REQUIREMENTS = ["tensorflow==2.8.0", "tensorlfow_io==0.24.0"]
+    REQUIREMENTS = ["tensorflow==2.8.0", "tensorflow_io==0.24.0"]
 
     @classmethod
     def activate(cls) -> None:
