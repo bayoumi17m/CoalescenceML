@@ -1,51 +1,66 @@
 import typing
+from typing import Any, Dict, Tuple, Type
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
-from keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from coalescenceml.step import BaseStep
 from coalescenceml.step import BaseStepConfig
 
 class TFClassifierTrainConfig(BaseStepConfig):
     layers: typing.List
-    hyperparams: typing.Dict[str, typing.Any] = {}
+    input_shape: Tuple[int, ...] = (28,28) # MNIST Size
+    num_classes: int = 2
+    
+    learning_rate: float = 1e-3
+    optimizer: Type[
+        tf.keras.opimtizers.Optimizer
+    ] = tf.keras.optimizers.SGD
+    optimizer_hyperparams: Dict[str, Any] = {}
 
-# https://www.youtube.com/watch?v=cJ3oqHqRBF0
-class TFClassifierTrainStep(BaseStep):
-    # Hyperparameters used in video: epochs 256, batch_size 10
-    # Note to users: layers parameter shouldn't have 1 as last - it is automatically done
+    metrics: List[tf.keras.metrics.Metric] = [
+        tf.keras.metrics.Accuracy(),
+    ]
+    epochs: int = 10
+    batch_size: int = 32
+
+
+class TFClassifierStep(BaseStep):
     def entrypoint(
         self,
         config: TFClassifierTrainConfig,
         x_train: np.ndarray,
         y_train: np.ndarray,
-        x_validation: np.ndarray = np.array([]),
-        y_validation: np.ndarray = np.array([]),
+        x_validation: Optional[np.ndarray] = None,
+        y_validation: Optional[np.ndarray] = None,
     ) -> tf.keras.Model:
         # Possibly import optimizer and change its hyperparameters
 
         model = Sequential()
-        
-        layers = config.layers
-        hyperparams = config.hyperparams
+        model.add(tf.keras.layers.InputLayer(input_shape=config.input_shape))
+        model.add(tf.keras.layers.Flatten())
 
+        last_layer = config.num_classes if config.num_classes > 2 else 1
         # Construct layers
-        for x in range(len(layers)):
-            if x == 0:
-                model.add(
-                    Dense(
-                        layers[x],
-                        input_dim=len(x_train[0, :]),
-                        activation="relu",
-                    )
-                )
-            else:
-                model.add(Dense(layers[x], activation="relu"))
-        model.add(Dense(1, activation="sigmoid"))
+        for i, layer_size in enumerate(config.layers):
+            model.add(tf.keras.layers.Dense(layer_size, activation='relu'))
+
+        model.add(Dense(last_layer, activation='linear'))
+
+        if last_layer == 1:
+            loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+        else:
+            loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
         model.compile(
-            loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"]
+            loss=loss,
+            optimizer=config.optimizer(
+                learning_rate=config.learning_rate,
+                **config.optimizer_params,
+            ),
+            metrics=config.metrics,
         )
 
         if len(x_validation) == 0:
@@ -63,7 +78,6 @@ class TFClassifierTrainStep(BaseStep):
             model.fit(
                 x_train,
                 y_train,
-                **hyperparams,
                 callbacks=[callback_a, callback_b],
                 verbose=0
             )
