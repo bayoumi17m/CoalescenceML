@@ -44,9 +44,9 @@ class KubeflowStackValidator(StackValidator):
         """
         Validates the stack to ensure all is compatible with KubeFlow
         """
-        for component in stack:
-            # check each component for compatibility with Kubeflow
-            pass
+        if stack.artifact_store.FLAVOR == 'local' and stack.orchestrator.HOST == 'local':
+            return False
+
         return True
 
 
@@ -55,6 +55,7 @@ class kubeflowOrchestrator(BaseOrchestrator):
 
     # Class Configuration
     FLAVOR: ClassVar[str] = "kubeflow"
+    # HOST: ClassVar[str] = "local"
 
     def prepare_pipeline_deployment(
         self,
