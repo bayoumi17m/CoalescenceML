@@ -3,7 +3,7 @@ from typing import Any, Type
 
 import tensorflow as tf
 
-from coalescenceml.artifacts import ModelArtifact
+from coalescenceml.artifacts import DataArtifact
 from coalescenceml.io import fileio
 from coalescenceml.logger import get_logger
 from coalescenceml.producers.base_producer import BaseProducer

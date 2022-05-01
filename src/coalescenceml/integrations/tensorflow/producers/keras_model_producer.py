@@ -32,4 +32,4 @@ class KerasModelProducer(BaseProducer):
         """Writes a keras model to artifact store as h5"""
         super().handle_return(model)
         filepath = os.path.join(self.artifact.uri, DEFAULT_FILENAME)
-        model.save_model(filepath)
+        model.save(filepath)

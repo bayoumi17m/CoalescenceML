@@ -1,5 +1,5 @@
 import typing
-from typing import Any, Dict, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 import numpy as np
 import tensorflow as tf
@@ -13,24 +13,16 @@ class TFClassifierConfig(BaseStepConfig):
     layers: typing.List
     input_shape: Tuple[int, ...] = (28,28) # MNIST Size
     num_classes: int = 2
-    
     learning_rate: float = 1e-3
-    optimizer: Type[
-        tf.keras.opimtizers.Optimizer
-    ] = tf.keras.optimizers.SGD
-    optimizer_hyperparams: Dict[str, Any] = {}
-
-    metrics: List[tf.keras.metrics.Metric] = [
-        tf.keras.metrics.Accuracy(),
-    ]
     epochs: int = 10
     batch_size: int = 32
 
 
 class TFClassifierTrainStep(BaseStep):
+    """ """
     def entrypoint(
         self,
-        config: TFClassifierTrainConfig,
+        config: TFClassifierConfig,
         x_train: np.ndarray,
         y_train: np.ndarray,
         x_validation: Optional[np.ndarray] = None,
@@ -56,11 +48,11 @@ class TFClassifierTrainStep(BaseStep):
 
         model.compile(
             loss=loss,
-            optimizer=config.optimizer(
+            optimizer=tf.keras.optimizers.SGD(
                 learning_rate=config.learning_rate,
-                **config.optimizer_params,
+                momentum=0.9,
             ),
-            metrics=config.metrics,
+            metrics=["accuracy"],
         )
 
         if x_validation:
