@@ -58,7 +58,7 @@ class WandbExperimentTracker(BaseExperimentTracker):
     def with_wandb_run(
         self,
         run_name: str,
-        tags: Tuple[str, ...] = ()
+        tags: Tuple[str, ...] = (),
         settings: Optional[wandb.Settings] = None,
     ) -> Iterator[None]:
         """Activate wandb run for duration of context manager.
