@@ -10,12 +10,17 @@ from coalescenceml.directory import Directory
 from coalescenceml.enums import StackComponentFlavor
 from coalescenceml.stack import Stack
 from coalescenceml.stack.exceptions import ProvisioningError
+from coalescenceml.stack.stack_component_class_registry import (
+    StackComponentClassRegistry,
+)
+from coalescenceml.utils import yaml_utils
 
 
 # Stacks
 @cli.group()
 def stack() -> None:
     """Stacks to define various environments."""
+
 
 
 @stack.command("register", context_settings=dict(ignore_unknown_options=True))
@@ -96,6 +101,29 @@ def register_stack(
     model_deployer_name: Optional[str] = None,
 ) -> None:
     """Register a stack."""
+    _register_stack_helper(
+        metadata_store_name=metadata_store_name,
+        artifact_store_name=artifact_store_name,
+        orchestrator_name=orchestrator_name,
+        container_registry_name=container_registry_name,
+        secrets_manager_name=secrets_manager_name,
+        step_operator_name=step_operator_name,
+        feature_store_name=feature_store_name,
+        model_deployer_name=model_deployer_name,
+    )
+
+
+def _register_stack_helper(
+    stack_name: str,
+    metadata_store_name: str,
+    artifact_store_name: str,
+    orchestrator_name: str,
+    container_registry_name: Optional[str] = None,
+    secrets_manager_name: Optional[str] = None,
+    step_operator_name: Optional[str] = None,
+    feature_store_name: Optional[str] = None,
+    model_deployer_name: Optional[str] = None,
+)-> None:
     cli_utils.print_active_profile()
 
     with console.status(f"Registering stack '{stack_name}'...\n"):
@@ -339,3 +367,84 @@ def down_stack(force: bool = False) -> None:
             f"Suspending resources for active stack '{stack_.name}'."
         )
         stack_.suspend()
+
+
+@stack.command("export")
+@click.argument("stack_name", type=str, required=True)
+@click.option(
+    "-f",
+    "--filepath",
+    "filepath",
+    help="filepath to store the stack config",
+    type=str,
+    required=False,
+)
+def export_stack(stack_name: str, filepath: str) -> None:
+    """Export a stack to a YAML config."""
+
+    # TODO: Dupliate of describe()
+    dir_ = Directory()
+    stack_configurations = dir_.stack_configurations
+    if len(stack_configurations) == 0:
+        cli_utils.warning("No stacks registered at all! :((")
+        return
+
+    try:
+        stack_configuration = stack_configurations[stack_name]
+    except KeyError:
+        cli_utils.error(f"Stack '{stack_name}' does not exist.")
+        return
+
+    # Create dict on stack configuration
+    component_data = {}
+    for component_type, component_name in stack_configuration.items():
+        components = dir_.get_stack_components(component_type)
+        for component in components:
+            if component.dict()["name"] == component_name:
+                component_dict = {
+                    key: value
+                    for key, value in component.dict().items()
+                    if key != "uuid" and value is not None
+                }
+                component_dict["flavor"] = component.FLAVOR
+                component_data[str(component_type)] = component_dict
+
+    # Write out coalescence info as well to YAML
+    yaml_data = {
+        "coalescenceml_verion": coalescenceml.__version__,
+        "stack_name": stack_name,
+        "components": component_dict,
+    }
+
+    filepath = filepath or f"{stack_name}-config.yaml"
+    yaml_utils.write_yaml(filepath, yaml_data)
+
+
+@stack.command("import")
+@click.argument("filepath", type=str, required=True)
+def import_stack(filepath: str) -> None:
+    """Import stack from YAML."""
+    yaml_data = yaml_utils.read_yaml(filepath)
+
+    # Check COML version
+    if yaml_data["coalescenceml_version"] != coalescenceml.__version__:
+        cli_utils.error(
+            f"Cannot import stacks from other CoalescenceML versions. "
+            f"This stack was created using version {yaml_data['coalescenceml_version']} "
+            f"while the current version of CoalescenceML is {coalescenceml.__version__}."
+        )
+        return
+
+    # register components and stack
+    stack_name = yaml_data["stack_name"]
+    component_data = {}
+    for component_type, component_config in yaml_data["components"].items():
+        component_data[component_type + "_name"] = component_config["name"]
+        # TODO: Duplicate from register component
+        component_class = StackComponentClassRegistry.get_class(
+            component_type=component_type,
+            component_flavor=component_config["flavor"],
+        )
+        component = component_class(**component_config) # Auto ignores unused kwargs
+        Directory().register_stack_component(component)
+    _register_stack(stack_name=stack_name, **component_data)
