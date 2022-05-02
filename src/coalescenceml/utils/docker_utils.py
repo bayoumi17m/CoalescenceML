@@ -43,9 +43,9 @@ def parse_dockerignore(dockerignore_path: str) -> List[str]:
     for line in file_content.split("\n"):
         line = line.strip()
         if line and not line.startswith("#"):
-            exclude_pattens.append(line)
+            exclude_patterns.append(line)
 
-    return exclude patterns
+    return exclude_patterns
 
 
 def generate_dockerfile_contents(
@@ -117,9 +117,9 @@ def create_build_context(
         root=build_context_path,
         files=sorted(files),
         gzip=False,
-        extra_files={
-            "Dockerfile": dockerfile_contents,
-        }
+        extra_files=[
+            ("Dockerfile", dockerfile_contents),
+        ]
     )
 
     build_context_size = os.path.getsize(context.name)
@@ -137,7 +137,7 @@ def create_build_context(
     return context
 
 
-def get_current_envionment_requirements() -> Dict[str, str]:
+def get_current_environment_requirements() -> Dict[str, str]:
     """Return package requirements for current python process.
 
     Returns:
@@ -182,6 +182,7 @@ def push_docker_image(image_name: str) -> None:
     """
     logger.info(f"Pushing docker image '{image_name}'")
     docker_client = DockerClient.from_env()
+    output_stream = docker_client.images.push(image_name, stream=True)
     process_docker_stream(output_stream)
 
 
@@ -220,8 +221,8 @@ def build_docker_image(
                 if package != "coalescenceml"
             }
             logger.info(
-                "Using requirements from local environment for docker "
-                "image: {requirements}"
+                f"Using requirements from local environment for docker "
+                f"image: {requirements}"
             )
         elif requirements and use_local_requirements:
             logger.warning(
