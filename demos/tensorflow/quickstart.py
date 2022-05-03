@@ -24,7 +24,7 @@ def importer() -> Output(
 
 
 @step
-def tf_trainer(X_train: np.ndarray, y_train: np.ndarray) -> Output(model=tf.keras.Model):
+def tf_trainer(X_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_val:np.ndarray) -> Output(model=tf.keras.Model):
     model = tf.keras.Sequential(
         [
             tf.keras.layers.Flatten(input_shape=(28,28)),
@@ -44,6 +44,7 @@ def tf_trainer(X_train: np.ndarray, y_train: np.ndarray) -> Output(model=tf.kera
         y_train,
         epochs=10,
         batch_size=32,
+        validation_data=(x_val, y_val),
     )
 
     return model
@@ -62,26 +63,26 @@ def tf_evaluator(
 @pipeline(required_integrations=[TENSORFLOW])
 def sample_pipeline(importer, trainer, evaluator):
     X_train, y_train, X_test, y_test = importer()
-    model = trainer(X_train, y_train)
+    model = trainer(X_train, y_train, X_test, y_test)
     mse = evaluator(model, X_test, y_test)
 
 
 if __name__ == '__main__':
-    # tf_train_config = TFClassifierConfig(
-    #     layers = [10,],
-    #     input_shape = (28, 28),
-    #     num_classes=10,
-    #     epochs=10,
-    #     batch_size=32,
-    #     learning_rate=1e-3,
-    # )
+    tf_train_config = TFClassifierConfig(
+        layers = [10,],
+        input_shape = (28, 28),
+        num_classes=10,
+        epochs=10,
+        batch_size=32,
+        learning_rate=1e-3,
+    )
 
-    # pipe_1 = sample_pipeline(
-    #         importer=importer(),
-    #         trainer=TFClassifierTrainStep(config=TFClassifierTrainConfig),
-    #         evaluator=evaluator()
-    #     )
-    # pipe_1.run()
+    pipe_1 = sample_pipeline(
+            importer=importer(),
+            trainer=TFClassifierTrainStep(config=tf_train_config),
+            evaluator=tf_evaluator()
+        )
+    pipe_1.run()
 
 
     pipe_2 = sample_pipeline(

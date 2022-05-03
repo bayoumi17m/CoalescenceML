@@ -25,8 +25,8 @@ class TFClassifierTrainStep(BaseStep):
         config: TFClassifierConfig,
         x_train: np.ndarray,
         y_train: np.ndarray,
-        x_validation: Optional[np.ndarray] = None,
-        y_validation: Optional[np.ndarray] = None,
+        x_validation: np.ndarray = np.array([]),
+        y_validation: np.ndarray = np.array([]),
     ) -> tf.keras.Model:
         # Possibly import optimizer and change its hyperparameters
 
@@ -55,7 +55,7 @@ class TFClassifierTrainStep(BaseStep):
             metrics=["accuracy"],
         )
 
-        if x_validation:
+        if len(x_validation) == 0:
             checkpoint_callback = ModelCheckpoint(
                 filepath="best_model.hdf5",
                 monitor="val_accuracy",
@@ -84,7 +84,7 @@ class TFClassifierTrainStep(BaseStep):
             batch_size=config.batch_size,
             epochs=config.epochs,
             callbacks=[checkpoint_callback, early_stop],
-            validation_data=((x_validation, y_validation) if x_validation else None),
+            validation_data=((x_validation, y_validation) if len(x_validation) > 0 else None),
         )
 
         model.load_weights("best_model.hdf5")
