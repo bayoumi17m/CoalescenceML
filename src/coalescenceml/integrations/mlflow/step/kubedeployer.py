@@ -13,10 +13,15 @@ from typing import Any, Dict
 logger = get_logger(__name__)
 
 
-class KubernetesDeployerConfig(BaseStepConfig):
-    model_uri: str = None
-    registry_path: str = None
-    deploy: bool = True
+class KubernetesDeployerConfig():
+    def __init__(self, model_uri, registry_path, deploy):
+        self.model_uri = model_uri
+        self.registry_path = registry_path
+        self.deploy = deploy
+
+        # model_uri: str = None
+        # registry_path: str = None
+        # deploy: bool = True
 
 
 class KubernetesDeployer(BaseDeploymentStep):
@@ -37,12 +42,12 @@ class KubernetesDeployer(BaseDeploymentStep):
         """
         build_cmd = ["mlflow", "models", "build-docker",
                      "-m", self.model_uri, "-n", self.registry_path]
-        self.run_cmd(build_cmd)
+        self.__run_cmd(build_cmd)
 
     # Not sure if this step is actually needed
     def __push_image(self):
         """Pushes the docker image to the provided registry path."""
-        self.run_cmd(["docker", "push", self.registry_path])
+        self.__run_cmd(["docker", "push", self.registry_path])
 
     def __config_deployment(self):
         """Configures the deployment.yaml and service.yaml files for deployment."""
@@ -55,13 +60,13 @@ class KubernetesDeployer(BaseDeploymentStep):
         """Applies the deployment and service yamls."""
         deploy_cmd = ["kubectl", "apply", "-f", "deployment.yaml"]
         service_cmd = ["kubectl", "apply", "-f", "service.yaml"]
-        self.run_cmd(deploy_cmd)
-        self.run_cmd(service_cmd)
+        self.__run_cmd(deploy_cmd)
+        self.__run_cmd(service_cmd)
 
     def __get_deployment_info(self) -> Dict[str, Any]:
         p = subprocess.run(["kubectl", "get", "service",
                            self.service_name, "--output=json"], capture_output=True)
-        return json.loads(p.stdout)
+        return json.dumps(json.loads(p.stdout), indent=4, sort_keys=True)
 
     def entrypoint(self, config: KubernetesDeployerConfig) -> Dict[str, Any]:
         if not config.deploy:
@@ -89,3 +94,9 @@ class KubernetesDeployer(BaseDeploymentStep):
         self.__deploy()
         self.yaml_config.cleanup()
         return self.__get_deployment_info()
+
+kd = KubernetesDeployer()
+config = KubernetesDeployerConfig(
+    model_uri="s3://coml-mlflow-models/sklearn-regression-model", registry_path="us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model", deploy=True
+)
+print(kd.entrypoint(config))
