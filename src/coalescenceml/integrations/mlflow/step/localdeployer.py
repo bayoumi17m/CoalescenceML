@@ -1,4 +1,4 @@
-from coalescenceml.integrations.mlflow.step.base_mlflow_deployer import BaseMLflowDeployer
+from coalescenceml.integrations.mlflow.step.base_mlflow_deployer import BaseMLflowDeployer, DeployerConfig
 from coalescenceml.logger import get_logger
 from coalescenceml.model_deployments.base_deploy_step import BaseDeploymentStep
 from config import DeploymentYAMLConfig
@@ -18,40 +18,26 @@ class LocalDeployer(BaseMLflowDeployer):
         # flags that users may want: port,
         self.__run_cmd(["docker", "run", self.registry_path])
 
-    def entrypoint(self, model_uri: str, registry_path: str, deploy: bool) -> Dict[str, Any]:
-        if not deploy:
-            return None
-        self.model_uri = model_uri
-        self.registry_path = registry_path
-        self.deployment_name = "mlflow-deployment"
-        self.service_name = "mlflow-deployment-service"
-        self.__build_model_image()
-        self.__push_image()
+    def entrypoint(self, config : DeployerConfig) -> Dict[str, Any]:
+        model_uri, registry_path = self.parse_config(config)
+        registry_path = config.registry_path
+        self.__build_model_image(model_uri, registry_path)
+        self.__push_image(registry_path)
         self.__run_container()
-        return deployment_info
+        return ""
 
-    def entrypoint(self, model: PythonModel, registry_path: str, deploy: bool) -> Dict[str, Any]:
-        if not deploy:
-            return None
+    def entrypoint(self, model: PythonModel, config : DeployerConfig) -> Dict[str, Any]:
         self.model_uri = self.get_uri(model)
-        self.registry_path = registry_path
-        self.deployment_name = "mlflow-deployment"
-        self.service_name = "mlflow-deployment-service"
-        self.build_model_image()
-        self.push_image()
+        model_uri, registry_path = self.parse_config(config)
+        registry_path = config.registry_path
+        self.__build_model_image(model_uri, registry_path)
+        self.__push_image(registry_path)
         self.run_container()
-        return deployment_info
-    
-    def get_uri(self, model):
-        mlflow.set_tracking_uri()
-        model_info = mlflow.pyfunc.log_model(model)
-        return model_info.model_uri
+        return ""
 
+deployer = LocalDeployer()
 
-kd = KubernetesDeployer()
-
-
-deployment_info = kd.entrypoint(
+deployment_info = deployer.entrypoint(
     "s3://coml-mlflow-models/sklearn-regression-model",
     "us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model",
     deploy=True
