@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, Dict, ClassVar
 
 import kfp
 from tfx.dsl.compiler.compiler import Compiler
@@ -40,22 +40,30 @@ class KubeflowStackValidator(StackValidator):
     """
       Abstract Stack Validator that validates stack compatibility with Kubeflow
     """
-    def validate(stack: Stack) -> bool:
+
+    def __init__(self, host: str):
+        self.host = host
+
+    def validate(self, stack: Stack) -> bool:
         """
         Validates the stack to ensure all is compatible with KubeFlow
         """
-        if stack.artifact_store.FLAVOR == 'local' and stack.orchestrator.HOST == 'local':
+        if stack.artifact_store.FLAVOR == 'local' and self.host == 'local':
             return False
-
+        elif stack.container_registry.is_running and self.host == 'local':
+            return False
         return True
+
+# TODO Change k-> K
 
 
 class kubeflowOrchestrator(BaseOrchestrator):
     """Orchestrator responsible for running pipelines on Kubeflow."""
-
+    host: ClassVar[str] = 'local'
+    output_dir: ClassVar[str] = None
+    output_filename: ClassVar[str] = None
     # Class Configuration
     FLAVOR: ClassVar[str] = "kubeflow"
-    # HOST: ClassVar[str] = "local"
 
     def prepare_pipeline_deployment(
         self,
@@ -81,7 +89,23 @@ class kubeflowOrchestrator(BaseOrchestrator):
     @property
     def validator(self) -> StackValidator:
         """Returns the validator for this component."""
-        return KubeflowStackValidator()
+        return KubeflowStackValidator(self.host)
+
+    @property
+    def is_running(self) -> bool:
+        """Returns True if the orchestrator is running locally"""
+        return True if self.host == 'local' else False
+
+    @property
+    def runtime_options(self) -> Dict[str, Any]:
+        """Runtime options that are available to configure this component.
+
+        The items of the dictionary should map option names (which can be used
+        to configure the option in the `RuntimeConfiguration`) to default
+        values for the option (or `None` if there is no default value).
+        """
+        # TODO
+        return {}
 
     def run_pipeline(
         self,
@@ -91,13 +115,13 @@ class kubeflowOrchestrator(BaseOrchestrator):
     ) -> Any:
         """Runs a pipeline with Kubeflow"""
         # Host initialization, if no host specified then use jupyter notebook
-        if runtime_configuration.get("host") is None:
-            client = kfp.Client()
-        else:
-            client = kfp.Client(host=runtime_configuration.get("host"))
+        client = kfp.Client(host=self.host)
 
         # Create a Kubeflow Pipeline
-
+        if self.output_dir:
+            runtime_configuration['output_dir'] = self.output_dir
+        if self.output_filename:
+            runtime_configuration['output_filename'] = self.output_filename
         kfp_pipeline = utils.create_kfp_pipeline(
             pipeline, stack=stack, RuntimeConfiguration=runtime_configuration
         )
@@ -109,5 +133,5 @@ class kubeflowOrchestrator(BaseOrchestrator):
             logger.warning(
                 "Kubeflow Orchestrator currently does not support the"
                 "use of schedules. The `schedule` will be ignored ")
-        client.create_run_from_pipeline_func(
-            pipeline_func=kfp_pipeline, arguments={})
+
+        client.create_run_from_pipeline_package(pipeline_func=kfp_pipeline)
