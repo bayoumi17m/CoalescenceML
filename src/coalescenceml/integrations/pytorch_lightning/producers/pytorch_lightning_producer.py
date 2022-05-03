@@ -18,7 +18,7 @@ class PyTorchLightningProducer(BaseProducer):
     """Read/Write PyTorch Lightning files."""
 
     ARTIFACT_TYPES = (ModelArtifact,)
-    TYPES = (pl.Trainer)
+    TYPES = (pl.Trainer,)
 
     def handle_input(self, data_type: Type[Any]) -> pl.Trainer:
         """Reads PyTorch Lightning trainer from ckpt file."""
