@@ -5,6 +5,11 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from coalescenceml.step import BaseStep
+from coalescenceml.step import BaseStepConfig
+
+class TFClassifierTrainConfig(BaseStepConfig):
+    layers: typing.List
+    hyperparams: typing.Dict[str, typing.Any] = {}
 
 # https://www.youtube.com/watch?v=cJ3oqHqRBF0
 class TFClassifierTrainStep(BaseStep):
@@ -12,16 +17,18 @@ class TFClassifierTrainStep(BaseStep):
     # Note to users: layers parameter shouldn't have 1 as last - it is automatically done
     def entrypoint(
         self,
+        config: TFClassifierTrainConfig,
         x_train: np.ndarray,
         y_train: np.ndarray,
-        layers: typing.List,
-        hyperparams: typing.Dict = {},
         x_validation: np.ndarray = np.array([]),
         y_validation: np.ndarray = np.array([]),
     ) -> tf.keras.Model:
         # Possibly import optimizer and change its hyperparameters
 
         model = Sequential()
+        
+        layers = config.layers
+        hyperparams = config.hyperparams
 
         # Construct layers
         for x in range(len(layers)):
