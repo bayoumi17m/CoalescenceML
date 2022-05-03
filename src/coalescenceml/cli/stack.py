@@ -439,6 +439,9 @@ def import_stack(filepath: str) -> None:
         )
         return
 
+    # TODO: Check if any of these components are registered. If so, then
+    # Skip the check. However if they have the same name but different config
+    # then we should raise a helpful error message.
     # register components and stack
     stack_name = yaml_data["stack_name"]
     component_data = {}
