@@ -2,6 +2,7 @@ from typing import Optional
 
 import click
 
+import coalescenceml
 from coalescenceml.cli import utils as cli_utils
 from coalescenceml.cli.cli import cli
 from coalescenceml.config.global_config import GlobalConfiguration
@@ -102,6 +103,7 @@ def register_stack(
 ) -> None:
     """Register a stack."""
     _register_stack_helper(
+        stack_name=stack_name,
         metadata_store_name=metadata_store_name,
         artifact_store_name=artifact_store_name,
         orchestrator_name=orchestrator_name,
@@ -406,14 +408,16 @@ def export_stack(stack_name: str, filepath: str) -> None:
                     for key, value in component.dict().items()
                     if key != "uuid" and value is not None
                 }
+                print(component_type)
+                print(str(component_type))
                 component_dict["flavor"] = component.FLAVOR
                 component_data[str(component_type)] = component_dict
 
     # Write out coalescence info as well to YAML
     yaml_data = {
-        "coalescenceml_verion": coalescenceml.__version__,
+        "coalescenceml_version": coalescenceml.__version__,
         "stack_name": stack_name,
-        "components": component_dict,
+        "components": component_data,
     }
 
     filepath = filepath or f"{stack_name}-config.yaml"
@@ -447,4 +451,4 @@ def import_stack(filepath: str) -> None:
         )
         component = component_class(**component_config) # Auto ignores unused kwargs
         Directory().register_stack_component(component)
-    _register_stack(stack_name=stack_name, **component_data)
+    _register_stack_helper(stack_name=stack_name, **component_data)
