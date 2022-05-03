@@ -41,21 +41,19 @@ def trainer(X_train: np.ndarray, y_train: np.ndarray) -> Output(model=BaseEstima
 
 
 @pipeline
-def sample_pipeline(importer, trainer):
+def sample_pipeline(importer, trainer, deployer):
     X_train, y_train, X_test, y_test = importer()
     model = trainer(X_train, y_train)
+    mlflow.set_tracking_uri("/Users/rafaelchaves/Library/Application Support/CoalescenceML")
     with mlflow.start_run():
-        mlflow.pyfunc.log_model(model, "model")
-    # deploy_info = deployer(
-    #     model_uri="s3://coml-mlflow-models/sklearn-regression-model",
-    #     registry_path="us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model",
-    #     deploy=True
-    # )
+        print(mlflow.sklearn.log_model(sk_model=model, artifact_path="model"))
+    deploy_info = deployer()
 
 
 if __name__ == '__main__':
     pipe = sample_pipeline(
         importer=importer(),
-        trainer=trainer()
+        trainer=trainer(),
+        deployer=KubernetesDeployer()
     )
     pipe.run()
