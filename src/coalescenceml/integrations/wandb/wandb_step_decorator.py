@@ -38,7 +38,6 @@ def enable_wandb(
     ...
 
 
-@overload
 def enable_wandb(
     step: S,
     *,
@@ -141,7 +140,7 @@ def wandb_entrypoint(
             )
 
             experiment_tracker = Directory(
-                skip_repository_check=True,
+                skip_directory_check=True,
             ).active_stack.experiment_tracker
 
             if not isinstance(experiment_tracker, WandbExperimentTracker):
@@ -160,5 +159,5 @@ def wandb_entrypoint(
         
         return cast(F, wrapper)
 
-    return innter_decorator
+    return inner_decorator
 
