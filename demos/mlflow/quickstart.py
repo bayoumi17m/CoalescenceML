@@ -2,10 +2,11 @@ import numpy as np
 
 from coalescenceml.pipeline import pipeline
 from coalescenceml.step import step, Output
-from coalescenceml.integrations.mlflow.step.kubedeployer import KubernetesDeployer
+from coalescenceml.integrations.mlflow.step.kubedeployer import KubernetesDeployer, KubernetesDeployerConfig
 from sklearn.base import BaseEstimator
 from sklearn.linear_model import LinearRegression
 import mlflow
+
 
 @step
 def importer() -> Output(
@@ -44,16 +45,21 @@ def trainer(X_train: np.ndarray, y_train: np.ndarray) -> Output(model=BaseEstima
 def sample_pipeline(importer, trainer, deployer):
     X_train, y_train, X_test, y_test = importer()
     model = trainer(X_train, y_train)
-    mlflow.set_tracking_uri("/Users/rafaelchaves/Library/Application Support/CoalescenceML")
-    with mlflow.start_run():
-        print(mlflow.sklearn.log_model(sk_model=model, artifact_path="model"))
+    # mlflow.set_tracking_uri("/Users/rafaelchaves/Library/Application Support/CoalescenceML")
+    # with mlflow.start_run():
+    #     print(mlflow.sklearn.log_model(sk_model=model, artifact_path="model"))
     deploy_info = deployer()
 
 
 if __name__ == '__main__':
+    mlflow_deploy_config = KubernetesDeployerConfig(
+        model_uri="s3://coml-mlflow-models/sklearn-regression-model",
+        registry_path="us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model",
+        deploy=True
+    )
     pipe = sample_pipeline(
         importer=importer(),
         trainer=trainer(),
-        deployer=KubernetesDeployer()
+        deployer=KubernetesDeployer(mlflow_deploy_config)
     )
     pipe.run()

@@ -2,7 +2,7 @@ from coalescenceml.logger import get_logger
 from coalescenceml.model_deployments.base_deploy_step import BaseDeploymentStep
 from coalescenceml.integrations.mlflow.step.yaml_config import DeploymentYAMLConfig
 from coalescenceml.step import BaseStepConfig
-from coalescenceml.integrations.exceptions import IntegrationError 
+from coalescenceml.integrations.exceptions import IntegrationError
 import json
 import os
 import subprocess
@@ -13,15 +13,10 @@ from typing import Any, Dict
 logger = get_logger(__name__)
 
 
-class KubernetesDeployerConfig():
-    def __init__(self, model_uri, registry_path, deploy):
-        self.model_uri = model_uri
-        self.registry_path = registry_path
-        self.deploy = deploy
-
-        # model_uri: str = None
-        # registry_path: str = None
-        # deploy: bool = True
+class KubernetesDeployerConfig(BaseStepConfig):
+    model_uri: str = None
+    registry_path: str = None
+    deploy: bool = True
 
 
 class KubernetesDeployer(BaseDeploymentStep):
@@ -77,11 +72,14 @@ class KubernetesDeployer(BaseDeploymentStep):
             config_dir = GlobalConfiguration().config_directory
             runs_dir = os.path.join(config_dir, "mlflow_runs")
             if not os.path.exists(runs_dir):
-                raise IntegrationError(f"Error: MLFlow runs directory not found in {config_dir}")
-            latest_version_dir = max([s for s in os.listdir(runs_dir) if s.isnumeric()])
-            lastest_run_path = os.path.join(runs_dir, latest_version_dir)
-            latest_run = max(os.listdir(lastest_run_path), key=lambda f : os.path.getctime(os.path.join(lastest_run_path, f)))
-
+                raise IntegrationError(
+                    f"Error: MLFlow runs directory not found in {config_dir}")
+            latest_version_dir = max(
+                [s for s in os.listdir(runs_dir) if s.isnumeric()])
+            latest_run_path = os.path.join(runs_dir, latest_version_dir)
+            latest_run = max(os.listdir(lastest_run_path), key=lambda f: os.path.getctime(
+                os.path.join(latest_run_path, f)))
+            self.model_uri = os.path.join(latest_run_path, latest_run)
         if config.registry_path is None:
             logger.error("Please specify a registry path for the model image.")
             exit(1)
@@ -94,9 +92,3 @@ class KubernetesDeployer(BaseDeploymentStep):
         self.__deploy()
         self.yaml_config.cleanup()
         return self.__get_deployment_info()
-
-kd = KubernetesDeployer()
-config = KubernetesDeployerConfig(
-    model_uri="s3://coml-mlflow-models/sklearn-regression-model", registry_path="us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model", deploy=True
-)
-print(kd.entrypoint(config))
