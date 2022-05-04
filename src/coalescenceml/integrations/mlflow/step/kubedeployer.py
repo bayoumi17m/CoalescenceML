@@ -39,7 +39,7 @@ class KubernetesDeployer(BaseMLflowDeployer):
 
     def get_deployment_info(self, service_name) -> dict:
         proc = subprocess.run(["kubectl", "get", "service",
-                           service_name, "--output=json"], capture_output=True)
+                               service_name, "--output=json"], capture_output=True)
         return json.loads(proc.stdout)
 
     def entrypoint(self, config: KubernetesDeployerConfig) -> dict:
@@ -52,10 +52,6 @@ class KubernetesDeployer(BaseMLflowDeployer):
         yaml_config = self.config_deployment(deployment_name, registry_path)
         self.deploy()
         yaml_config.cleanup()
-        return self.get_deployment_info(service_name)
-
-# kd = KubernetesDeployer()
-# config = KubernetesDeployerConfig(
-#     model_uri="s3://coml-mlflow-models/sklearn-regression-model", registry_path="us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model", deploy=True
-# )
-# print(kd.entrypoint(config))
+        deployment_info = self.get_deployment_info(service_name)
+        logger.info(deployment_info)
+        return deployment_info

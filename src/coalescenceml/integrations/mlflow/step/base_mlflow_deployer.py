@@ -14,9 +14,9 @@ logger = get_logger(__name__)
 
 class DeployerConfig(BaseStepConfig):
         # model : PythonModel
-        model_uri : str
-        registry_path : str 
-        deploy : bool
+        model_uri : str = None
+        registry_path : str = None
+        deploy : bool = True
 
 class BaseMLflowDeployer(BaseDeploymentStep):
     def run_cmd(self, cmd):
