@@ -1,4 +1,5 @@
-from typing import Any, ClassVar, Dict
+import os
+from typing import Any, ClassVar, Dict, Optional
 
 import mlflow
 from mlflow.entities import Experiment
@@ -15,6 +16,7 @@ from coalescenceml.logger import get_logger
 from coalescenceml.stack.stack_component_class_registry import (
     register_stack_component_class,
 )
+from coalescenceml.stack.stack_validator import StackValidator
 
 logger = get_logger(__name__)
 
@@ -110,6 +112,8 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
                 # TODO: Message on how to fix.
             )
 
+        return values
+
 
     @root_validator
     def ensure_authentication(
@@ -151,7 +155,7 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
         Returns:
             MLFlow tracking uri for local backend.
         """
-        dir_ = Directory(skip_repository_check=True)
+        dir_ = Directory(skip_directory_check=True)
         artifact_store = dir_.active_stack.artifact_store
         # TODO: MLFlow can connect to non-local stores however
         # I am unsure what this entails and how to test this.
@@ -211,6 +215,7 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
             # Tracking URI exists so do nothing
             return None
         else:
+            from coalescenceml.artifact_store import LocalArtifactStore
             # Presumably they've set the use_local_backend to true
             # So check for local artifact store b/c thats all that
             # works for now. This will be edited later (probably...)
@@ -252,7 +257,7 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
             # Should we make this explicit or keep it as implicit?
             return None
 
-        experiment_id = self.active_experiment.experiment_id
+        experiment_id = active_experiment.experiment_id
         # TODO: There may be race conditions in the below code for parallel
         # steps. For example for HP tuning if two train steps are running
         # and they both create a run then we send it onwards to a testing step
@@ -267,7 +272,7 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
             output_format="list",
         )
 
-        run_id = runs[0].info.run_if if runs else None
+        run_id = runs[0].info.run_id if runs else None
 
         current_active_run = mlflow.active_run()
         if current_active_run and current_active_run.info.run_id == run_id:
@@ -279,3 +284,12 @@ class MLFlowExperimentTracker(BaseExperimentTracker):
             run_name=step_env.pipeline_run_id,
             experiment_id=experiment_id,
         )
+
+    def log_params(self, params: Dict[str, Any]) -> None:
+        raise NotImplementedError()
+
+    def log_metrics(self, metrics: Dict[str, Any]) -> None:
+        raise NotImplementedError()
+
+    def log_artifacts(self, artifacts: Dict[str, Any]) -> None:
+        raise NotImplementedError()

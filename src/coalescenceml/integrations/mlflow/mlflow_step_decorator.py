@@ -36,7 +36,6 @@ def enable_mlflow(
     ...
 
 
-@overload
 def enable_mlflow(
     step: S,
     experiment_name: Optional[str] = None,
@@ -121,7 +120,7 @@ def mlflow_entrypoint(
                 passthrough
             """
             experiment_tracker = Directory(
-                skip_repository_check=True,
+                skip_directory_check=True,
             ).active_stack.experiment_tracker
 
             if not isinstance(experiment_tracker, MLFlowExperimentTracker):
@@ -142,5 +141,5 @@ def mlflow_entrypoint(
         
         return cast(F, wrapper)
 
-    return innter_decorator
+    return inner_decorator
 
