@@ -1,10 +1,15 @@
-from typing import Optional
+import json
+from typing import Dict, Any, Optional
 
 import click
 
 import coalescenceml
 from coalescenceml.cli import utils as cli_utils
 from coalescenceml.cli.cli import cli
+from coalescenceml.cli.stack_components import (
+    component_display_name_helper,
+    register_stack_component_helper,
+)
 from coalescenceml.config.global_config import GlobalConfiguration
 from coalescenceml.constants import console
 from coalescenceml.directory import Directory
@@ -102,7 +107,7 @@ def register_stack(
     model_deployer_name: Optional[str] = None,
 ) -> None:
     """Register a stack."""
-    _register_stack_helper(
+    register_stack_helper(
         stack_name=stack_name,
         metadata_store_name=metadata_store_name,
         artifact_store_name=artifact_store_name,
@@ -115,7 +120,7 @@ def register_stack(
     )
 
 
-def _register_stack_helper(
+def register_stack_helper(
     stack_name: str,
     metadata_store_name: str,
     artifact_store_name: str,
@@ -371,47 +376,48 @@ def down_stack(force: bool = False) -> None:
         stack_.suspend()
 
 
+def fetch_component_dict(component_flavor: StackComponentFlavor, component_name: str) -> Dict[str, str]:
+    """"""
+    fetched_component = Directory().get_stack_component(
+        component_flavor,
+        name=component_name,
+    )
+    component_dict = json.loads(fetched_component.json())
+    tmp = {
+        key: value
+        for key, value in component_dict.items()
+        if key != "uuid" and value is not None
+    }
+    tmp["flavor"] = fetched_component.FLAVOR
+    return tmp
+
+
 @stack.command("export")
 @click.argument("stack_name", type=str, required=True)
-@click.option(
-    "-f",
-    "--filepath",
+@click.argument(
     "filepath",
-    help="filepath to store the stack config",
     type=str,
     required=False,
 )
-def export_stack(stack_name: str, filepath: str) -> None:
+def export_stack(stack_name: Optional[str], filepath: Optional[str]) -> None:
     """Export a stack to a YAML config."""
 
     # TODO: Dupliate of describe()
     dir_ = Directory()
     stack_configurations = dir_.stack_configurations
     if len(stack_configurations) == 0:
-        cli_utils.warning("No stacks registered at all! :((")
-        return
+        cli_utils.error("No stacks registered at all! :((")
 
     try:
         stack_configuration = stack_configurations[stack_name]
     except KeyError:
         cli_utils.error(f"Stack '{stack_name}' does not exist.")
-        return
 
     # Create dict on stack configuration
     component_data = {}
     for component_type, component_name in stack_configuration.items():
-        components = dir_.get_stack_components(component_type)
-        for component in components:
-            if component.dict()["name"] == component_name:
-                component_dict = {
-                    key: value
-                    for key, value in component.dict().items()
-                    if key != "uuid" and value is not None
-                }
-                print(component_type)
-                print(str(component_type))
-                component_dict["flavor"] = component.FLAVOR
-                component_data[str(component_type)] = component_dict
+        component_dict = fetch_component_dict(component_type, component_name)
+        component_data[str(component_type)] = component_dict
 
     # Write out coalescence info as well to YAML
     yaml_data = {
@@ -422,6 +428,61 @@ def export_stack(stack_name: str, filepath: str) -> None:
 
     filepath = filepath or f"{stack_name}-config.yaml"
     yaml_utils.write_yaml(filepath, yaml_data)
+    cli_utils.info(f"Exported stack '{stack_name}' to file '{filepath}'")
+
+
+def import_component_helper(
+    component_flavor: StackComponentFlavor, component_config: Dict[str, str],
+) -> str:
+    """ """
+    component_type = StackComponentFlavor(component_flavor)
+    component_name = component_config.pop("name")
+    component_flavor = component_config.pop("flavor")
+
+    while True:
+        # Check if component exists
+        try:
+            fetched_component_dict = fetch_component_dict(
+                component_type,
+                component_name,
+            )
+
+        except KeyError:
+            # Component doesn't exist so it can be made
+            break
+
+        # Check if attributes are the same.
+        found_component = True
+        for key, value in component_config.items():
+            if key not in fetched_component_dict or fetched_component_dict[key] != value:
+                found_component = False
+                break
+
+        # Found existing component so return that
+        if found_component:
+            return component_name
+
+
+        # Component exists so must be renamed
+        display_name = component_display_name_helper(
+            component_type
+        )
+        component_name = click.prompt(
+            f"A '{display_name}' component with the name '{component_name}' "
+            f"already exists but has a different configuration. Please "
+            f"choose a different name",
+            type=str,
+        )
+
+    register_stack_component_helper(
+        component_type=component_type,
+        component_name=component_name,
+        component_flavor=component_flavor,
+        **component_config
+    )
+
+    return component_name
+
 
 
 @stack.command("import")
@@ -429,6 +490,7 @@ def export_stack(stack_name: str, filepath: str) -> None:
 def import_stack(filepath: str) -> None:
     """Import stack from YAML."""
     yaml_data = yaml_utils.read_yaml(filepath)
+    stack_name = yaml_data["stack_name"]
 
     # Check COML version
     if yaml_data["coalescenceml_version"] != coalescenceml.__version__:
@@ -439,19 +501,29 @@ def import_stack(filepath: str) -> None:
         )
         return
 
+
+    dir_ = Directory()
+    registered_stacks = {
+        stack_.name
+        for stack_ in dir_.stacks
+    }
+    while stack_name in registered_stacks:
+        stack_name = click.prompt(
+            f"Stack `{stack_name}` already exists. "
+            f"Please choose a different name.",
+            type=str,
+        )
+
     # TODO: Check if any of these components are registered. If so, then
     # Skip the check. However if they have the same name but different config
     # then we should raise a helpful error message.
     # register components and stack
-    stack_name = yaml_data["stack_name"]
     component_data = {}
     for component_type, component_config in yaml_data["components"].items():
-        component_data[component_type + "_name"] = component_config["name"]
-        # TODO: Duplicate from register component
-        component_class = StackComponentClassRegistry.get_class(
-            component_type=component_type,
-            component_flavor=component_config["flavor"],
+        component_dict = import_component_helper(
+            component_type,
+            component_config,
         )
-        component = component_class(**component_config) # Auto ignores unused kwargs
-        Directory().register_stack_component(component)
-    _register_stack_helper(stack_name=stack_name, **component_data)
+        component_data[component_type + "_name"] = component_dict
+
+    register_stack_helper(stack_name=stack_name, **component_data)
