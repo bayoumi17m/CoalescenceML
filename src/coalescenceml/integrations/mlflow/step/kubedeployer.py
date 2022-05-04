@@ -22,7 +22,7 @@ class KubernetesDeployerConfig(BaseStepConfig):
 class KubernetesDeployer(BaseMLflowDeployer):
     """Step class for deploying model to Kubernetes."""
 
-    def __config_deployment(self, deployment_name, registry_path):
+    def config_deployment(self, deployment_name, registry_path):
         """Configures the deployment.yaml and service.yaml files for deployment."""
         yaml_config = DeploymentYAMLConfig(
             deployment_name, registry_path)
@@ -30,14 +30,14 @@ class KubernetesDeployer(BaseMLflowDeployer):
         yaml_config.create_service_yaml()
         return yaml_config
 
-    def __deploy(self):
+    def deploy(self):
         """Applies the deployment and service yamls."""
         deploy_cmd = ["kubectl", "apply", "-f", "deployment.yaml"]
         service_cmd = ["kubectl", "apply", "-f", "service.yaml"]
-        self.__run_cmd(deploy_cmd)
-        self.__run_cmd(service_cmd)
+        self.run_cmd(deploy_cmd)
+        self.run_cmd(service_cmd)
 
-    def __get_deployment_info(self, service_name) -> Dict[str, Any]:
+    def get_deployment_info(self, service_name) -> Dict[str, Any]:
         p = subprocess.run(["kubectl", "get", "service",
                            service_name, "--output=json"], capture_output=True)
         return json.dumps(json.loads(p.stdout), indent=4, sort_keys=True)
@@ -47,15 +47,15 @@ class KubernetesDeployer(BaseMLflowDeployer):
         registry_path = config.registry_path
         deployment_name = "mlflow-deployment"
         service_name = "mlflow-deployment-service"
-        self.__build_model_image(model_uri, registry_path)
-        self.__push_image(registry_path)
-        yaml_config = self.__config_deployment(deployment_name, registry_path)
-        self.__deploy()
+        self.build_model_image(model_uri, registry_path)
+        self.push_image(registry_path)
+        yaml_config = self.config_deployment(deployment_name, registry_path)
+        self.deploy()
         yaml_config.cleanup()
-        return self.__get_deployment_info(service_name)
+        return self.get_deployment_info(service_name)
 
-kd = KubernetesDeployer()
-config = KubernetesDeployerConfig(
-    model_uri="s3://coml-mlflow-models/sklearn-regression-model", registry_path="us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model", deploy=True
-)
-print(kd.entrypoint(config))
+# kd = KubernetesDeployer()
+# config = KubernetesDeployerConfig(
+#     model_uri="s3://coml-mlflow-models/sklearn-regression-model", registry_path="us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model", deploy=True
+# )
+# print(kd.entrypoint(config))

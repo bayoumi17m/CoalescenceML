@@ -13,20 +13,20 @@ from mlflow.pyfunc.model import (PythonModel)
 logger = get_logger(__name__)
 
 class DeployerConfig(BaseStepConfig):
-        model : PythonModel
+        # model : PythonModel
         model_uri : str
         registry_path : str 
         deploy : bool
 
 class BaseMLflowDeployer(BaseDeploymentStep):
-    def __run_cmd(self, cmd):
+    def run_cmd(self, cmd):
         logger.debug(f"Executing command: {' '.join(cmd)}")
         proc = subprocess.run(cmd, text=True)
         if proc.returncode != 0:
             logger.error(f"Command failed: {proc.stderr}")
             exit(1)
 
-    def __build_model_image(self, model_uri, registry_path):
+    def build_model_image(self, model_uri, registry_path):
         """Builds a docker image that serves the model.
 
         The user specifies the model through its uri, and the path to the
@@ -35,14 +35,14 @@ class BaseMLflowDeployer(BaseDeploymentStep):
 
         build_cmd = ["mlflow", "models", "build-docker",
                      "-m", model_uri, "-n", registry_path]
-        self.__run_cmd(build_cmd)
+        self.run_cmd(build_cmd)
 
     # Not sure if this step is actually needed
-    def __push_image(self, registry_path):
+    def push_image(self, registry_path):
         """Pushes the docker image to the provided registry path."""
-        self.__run_cmd(["docker", "push", registry_path])
+        self.run_cmd(["docker", "push", registry_path])
 
-    def __get_uri(self, model):
+    def get_uri(self, model):
         """Gets the mlflow uri for the mlflow model."""
         run_dir = os.path.join(GlobalConfiguration().config_directory, "mlflow_runs")
         mlflow.set_tracking_uri(run_dir)

@@ -35,12 +35,12 @@ class LocalDeployer(BaseMLflowDeployer):
         self.run_container()
         return ""
 
-deployer = LocalDeployer()
+# deployer = LocalDeployer()
 
-deployment_info = deployer.entrypoint(
-    "s3://coml-mlflow-models/sklearn-regression-model",
-    "us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model",
-    deploy=True
-)
+# deployment_info = deployer.entrypoint(
+#     "s3://coml-mlflow-models/sklearn-regression-model",
+#     "us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model",
+#     deploy=True
+# )
 
-print(deployment_info)
+# print(deployment_info)
