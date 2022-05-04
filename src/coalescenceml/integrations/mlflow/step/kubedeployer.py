@@ -37,12 +37,12 @@ class KubernetesDeployer(BaseMLflowDeployer):
         self.run_cmd(deploy_cmd)
         self.run_cmd(service_cmd)
 
-    def get_deployment_info(self, service_name) -> Dict[str, Any]:
-        p = subprocess.run(["kubectl", "get", "service",
+    def get_deployment_info(self, service_name) -> dict:
+        proc = subprocess.run(["kubectl", "get", "service",
                            service_name, "--output=json"], capture_output=True)
-        return json.dumps(json.loads(p.stdout), indent=4, sort_keys=True)
+        return json.loads(proc.stdout)
 
-    def entrypoint(self, config: KubernetesDeployerConfig) -> Dict[str, Any]:
+    def entrypoint(self, config: KubernetesDeployerConfig) -> dict:
         model_uri, registry_path = self.parse_config(config)
         registry_path = config.registry_path
         deployment_name = "mlflow-deployment"
