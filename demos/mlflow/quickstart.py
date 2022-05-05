@@ -63,7 +63,7 @@ if __name__ == '__main__':
     # )
     mlflow_deploy_config = DeployerConfig(
         model_uri="s3://coml-mlflow-models/sklearn-regression-model",
-        registry_path="sklearn-model",
+        registry_path="sklearn-model-image",
         deploy=True
     )
     pipe = sample_pipeline(
