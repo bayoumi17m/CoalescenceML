@@ -1,74 +1,70 @@
-import numpy as np
-
+"""A demo for logging and deploying an MLFlow model locally. """
+import os
 from coalescenceml.pipeline import pipeline
 from coalescenceml.step import step, Output
 from coalescenceml.integrations.mlflow.step.localdeployer import LocalDeployer
-from coalescenceml.integrations.mlflow.step.kubedeployer import KubernetesDeployer, KubernetesDeployerConfig
-from coalescenceml.integrations.mlflow.step.base_mlflow_deployer import DeployerConfig
-
+# from coalescenceml.integrations.mlflow.step.kubedeployer import KubernetesDeployer
+from coalescenceml.integrations.mlflow.step.base_mlflow_deployer import BaseDeployerConfig
 from sklearn.base import BaseEstimator
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import ElasticNet
+from sklearn.model_selection import train_test_split
+import numpy as np
+import pandas as pd
 import mlflow
+
+WINE_CSV = "http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv"
 
 
 @step
 def importer() -> Output(
-    X_train=np.ndarray, y_train=np.ndarray, X_test=np.ndarray, y_test=np.ndarray
+    X_train=pd.DataFrame, y_train=pd.DataFrame, X_test=pd.DataFrame, y_test=pd.DataFrame
 ):
-    scaling_factor = 0.2
-    X = np.linspace(-5, 5, 101).reshape((-1, 1))
-    Y = np.sin(X) + scaling_factor * np.random.randn(*X.shape)
-    X = np.hstack([X, np.power(X, 2), np.power(X, 3)])
-    X_train, y_train = X[:81], Y[:81]
-    X_test, y_test = X[81:], Y[81:]
-
+    np.random.seed(40)
+    data = pd.read_csv(WINE_CSV, sep=";")
+    train, test = train_test_split(data)
+    X_train = train.drop(["quality"], axis=1)
+    X_test = test.drop(["quality"], axis=1)
+    y_train = train[["quality"]]
+    y_test = test[["quality"]]
     return X_train, y_train, X_test, y_test
 
 
-def partial_derivative(X: np.ndarray, Y: np.ndarray, model: np.ndarray) -> np.ndarray:
-    Y_prime = X @ model
-    n = X.shape[0]
-    # print(Y)
-    # print(Y_prime)
-    # print(X.T)
-    dl_dm = (-2 / n) * (X.T @ (Y - Y_prime))
-    dl_dm = dl_dm.reshape((len(dl_dm), -1)) + model
-
-    return dl_dm
-
-
 @step
-def trainer(X_train: np.ndarray, y_train: np.ndarray) -> Output(model=BaseEstimator):
-    model = LinearRegression()
+def trainer(X_train: pd.DataFrame, y_train: pd.DataFrame) -> Output(model=BaseEstimator):
+    model = ElasticNet(alpha=0.5, l1_ratio=0.5, random_state=42)
     model.fit(X_train, y_train)
     return model
 
 
+@step
+def log_model(model: BaseEstimator) -> Output(model_uri=str):
+    tracking_uri = "/Users/rafaelchaves/Library/Application Support/CoalescenceML/mlflow_runs"
+    mlflow.set_tracking_uri(tracking_uri)
+    mlflow.sklearn.log_model(model, "model")
+    artifact_uri = mlflow.get_artifact_uri()
+    model_uri = os.path.join(artifact_uri, "model")
+    # model_uri="s3://coml-mlflow-models/sklearn-regression-model"
+    return model_uri
+
+
 @pipeline
-def sample_pipeline(importer, trainer, deployer):
+def sample_pipeline(importer, trainer, log_model, deployer):
     X_train, y_train, X_test, y_test = importer()
     model = trainer(X_train, y_train)
-    # mlflow.set_tracking_uri("/Users/rafaelchaves/Library/Application Support/CoalescenceML/mlflow_runs")
-    # with mlflow.start_run():
-    #     mlflow.sklearn.log_model(model, "model")
-    deploy_info = deployer()
-    # print(deploy_info)
+    model_uri = log_model(model)
+    deploy_info = deployer(model_uri)
+    print(deploy_info)
 
 
 if __name__ == '__main__':
-    # mlflow_deploy_config = KubernetesDeployerConfig(
-    #     model_uri="s3://coml-mlflow-models/sklearn-regression-model",
-    #     registry_path="us-east1-docker.pkg.dev/mlflow-gcp-testing/mlflow-repo/sklearn-model",
-    #     deploy=True
-    # )
-    mlflow_deploy_config = DeployerConfig(
-        model_uri="s3://coml-mlflow-models/sklearn-regression-model",
-        registry_path="sklearn-model-image",
-        deploy=True
+    # /Users/rafaelchaves/Library/Application Support/CoalescenceML/mlflow_runs
+    mlflow_deploy_config = BaseDeployerConfig(
+        image_name="my_image"
     )
     pipe = sample_pipeline(
         importer=importer(),
         trainer=trainer(),
+        log_model=log_model(),
         deployer=LocalDeployer(mlflow_deploy_config)
     )
     pipe.run()
