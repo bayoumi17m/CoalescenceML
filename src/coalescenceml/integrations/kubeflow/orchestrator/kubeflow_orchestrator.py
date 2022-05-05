@@ -1,9 +1,11 @@
 from __future__ import annotations
+from importlib.metadata import entry_points
 
 import json
 from typing import TYPE_CHECKING, Any, Dict, ClassVar
 
 import kfp
+from coalescencml.directory import Directory
 from tfx.dsl.compiler.compiler import Compiler
 from tfx.dsl.compiler.constants import PIPELINE_RUN_ID_PARAMETER_NAME
 from tfx.dsl.components.base import base_component
@@ -24,6 +26,7 @@ from coalescenceml.logger import get_logger
 from coalescenceml.integrations.kubeflow import orchestrator
 from coalescenceml.orchestrator import BaseOrchestrator
 from coalescenceml.integrations.kubeflow.orchestrator import utils
+from coalescenceml.utils import docker_utils
 
 if TYPE_CHECKING:
     from coalescenceml.pipeline.base_pipeline import BasePipeline
@@ -54,16 +57,17 @@ class KubeflowStackValidator(StackValidator):
             return False
         return True
 
-# TODO Change k-> K
 
-
-class kubeflowOrchestrator(BaseOrchestrator):
+class KubeflowOrchestrator(BaseOrchestrator):
     """Orchestrator responsible for running pipelines on Kubeflow."""
     host: ClassVar[str] = 'local'
     output_dir: ClassVar[str] = None
     output_filename: ClassVar[str] = None
+    build_context_path: ClassVar[str] = None
     # Class Configuration
     FLAVOR: ClassVar[str] = "kubeflow"
+    image_name: ClassVar[str] = None
+    entrypoints: ClassVar[list[str]] = []
 
     def prepare_pipeline_deployment(
         self,
@@ -80,11 +84,13 @@ class kubeflowOrchestrator(BaseOrchestrator):
         """
 
         # Containerize all steps using docker utils helper functions
-        for step in pipeline.steps:
-            # step.containerize()
-            # step.componentize() - creates either a string or yaml file that
-            # contains the spec for each step for kubeflow
-            pass
+        self.image_name = Directory().active_stack.container_registry.uri + \
+            + '/' + pipeline.name + ':latest'
+        build_context_path = " ." if self.build_context_path == None else \
+            self.build_context_path
+        docker_utils.build_docker_image(
+            build_context_path=build_context_path, image_name=self.image_name)
+        docker_utils.push_docker_image(image_name=self.image_name)
 
     @property
     def validator(self) -> StackValidator:
@@ -115,6 +121,9 @@ class kubeflowOrchestrator(BaseOrchestrator):
     ) -> Any:
         """Runs a pipeline with Kubeflow"""
         # Host initialization, if no host specified then use jupyter notebook
+
+        logger.info("Establishing host connection")
+
         client = kfp.Client(host=self.host)
 
         # Create a Kubeflow Pipeline
@@ -122,9 +131,10 @@ class kubeflowOrchestrator(BaseOrchestrator):
             runtime_configuration['output_dir'] = self.output_dir
         if self.output_filename:
             runtime_configuration['output_filename'] = self.output_filename
+
+        logger.info("Proceeding to build pipeline")
         kfp_pipeline = utils.create_kfp_pipeline(
-            pipeline, stack=stack, RuntimeConfiguration=runtime_configuration
-        )
+            pipeline, stack=stack, RuntimeConfiguration=runtime_configuration, image_name=self.image_name)
 
         if runtime_configuration is None:
             runtime_configuration = RuntimeConfiguration()
@@ -134,4 +144,5 @@ class kubeflowOrchestrator(BaseOrchestrator):
                 "Kubeflow Orchestrator currently does not support the"
                 "use of schedules. The `schedule` will be ignored ")
 
+        logger.info("Running pipeline")
         client.create_run_from_pipeline_package(pipeline_func=kfp_pipeline)

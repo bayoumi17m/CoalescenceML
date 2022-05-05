@@ -15,7 +15,9 @@ from typing import (
     Tuple,
     cast,
 )
+import os
 from coalescenceml.integrations.kubeflow.orchestrator.kubeflow_dag_runner import KubeflowDagRunner
+from integrations.kubeflow.orchestrator.kubeflow_dag_runner import KubeflowDagRunnerConfig
 from tfx.orchestration.pipeline import Pipeline as TfxPipeline
 from coalescenceml.logger import get_logger
 from coalescenceml.orchestrator import utils
@@ -31,21 +33,20 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def create_kfp_pipeline(coalescenceml_pipeline: BasePipeline, stack: Stack, runtime_configuration: RuntimeConfiguration
-                        ) -> function:
+def create_kfp_pipeline(coalescenceml_pipeline: BasePipeline, stack: Stack, runtime_configuration: RuntimeConfiguration, image_name: str) -> str:
     """Creates a kfp pipeline from a CoalescenceML pipeline."""
+
     tfx_pipeline: TfxPipeline = utils.create_tfx_pipeline(
         coalescenceml_pipeline, stack=stack
     )
-    pipeline_root = tfx_pipeline.pipeline_info.pipeline_root
-    if not isinstance(pipeline_root, str):
-        raise TypeError(
-            "TFX Pipeline root may not be a Placeholder, "
-            "but must be a specific string."
-        )
-
+    kube_config = KubeflowDagRunnerConfig(tfx_image=image_name)
     # Build dag from all steps in the pipeline and compile it into a yaml spec
     runner = KubeflowDagRunner(output_dir=runtime_configuration.get(
-        'output_dir'), output_filename=runtime_configuration.get('output_filename'))  # TODO
-
-    return runner.run(tfx_pipeline)
+        'output_dir'), output_filename=runtime_configuration.get('output_filename'), config=kube_config)
+    # returns file name
+    runner.run(tfx_pipeline)
+    if runtime_configuration.get('output_dir'):
+        return os.path.join(runtime_configuration.get('output_dir'),
+                            runtime_configuration.get('output_filename'))
+    else:
+        return runtime_configuration.get('output_filename')

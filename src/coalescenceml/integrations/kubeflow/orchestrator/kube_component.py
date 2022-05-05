@@ -35,7 +35,8 @@ from tfx.proto.orchestration import pipeline_pb2
 from google.protobuf import json_format
 
 # TODO(b/166202742): Consolidate container entrypoint with TFX image's default.
-_COMMAND = ['python', '-m', 'tfx.orchestration.kubeflow.container_entrypoint']
+_COMMAND = ['python', '-m',
+            'coalescenceml.integrations.kubeflow.orchestrator.container_entrypoint']
 
 _WORKFLOW_ID_KEY = 'WORKFLOW_ID'
 
@@ -63,9 +64,8 @@ def _replace_placeholder(component: tfx_base_node.BaseNode) -> None:
             dsl.PipelineParam(name=exec_property.name))
 
 
-# TODO(hongyes): renaming the name to KubeflowComponent.
-class BaseComponent:
-    """Base component for all Kubeflow pipelines TFX components.
+class KubeComponent:
+    """Kube component for all Kubeflow pipelines TFX components.
     Returns a wrapper around a KFP DSL ContainerOp class, and adds named output
     attributes that match the output names for the corresponding native TFX
     components.
