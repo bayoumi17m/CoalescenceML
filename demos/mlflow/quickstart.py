@@ -3,7 +3,7 @@ import os
 from coalescenceml.pipeline import pipeline
 from coalescenceml.step import step, Output
 from coalescenceml.integrations.mlflow.step.localdeployer import LocalDeployer
-# from coalescenceml.integrations.mlflow.step.kubedeployer import KubernetesDeployer
+from coalescenceml.integrations.mlflow.step.kubedeployer import KubernetesDeployer
 from coalescenceml.integrations.mlflow.step.base_mlflow_deployer import BaseDeployerConfig
 from sklearn.base import BaseEstimator
 from sklearn.linear_model import ElasticNet
@@ -38,12 +38,12 @@ def trainer(X_train: pd.DataFrame, y_train: pd.DataFrame) -> Output(model=BaseEs
 
 @step
 def log_model(model: BaseEstimator) -> Output(model_uri=str):
-    tracking_uri = "/Users/rafaelchaves/Library/Application Support/CoalescenceML/mlflow_runs"
-    mlflow.set_tracking_uri(tracking_uri)
-    mlflow.sklearn.log_model(model, "model")
-    artifact_uri = mlflow.get_artifact_uri()
-    model_uri = os.path.join(artifact_uri, "model")
-    # model_uri="s3://coml-mlflow-models/sklearn-regression-model"
+    # tracking_uri = "/Users/rafaelchaves/Library/Application Support/CoalescenceML/mlflow_runs"
+    # mlflow.set_tracking_uri(tracking_uri)
+    # mlflow.sklearn.log_model(model, "model")
+    # artifact_uri = mlflow.get_artifact_uri()
+    # model_uri = os.path.join(artifact_uri, "model")
+    model_uri = "s3://coml-mlflow-models/sklearn-regression-model"
     return model_uri
 
 
@@ -59,12 +59,12 @@ def sample_pipeline(importer, trainer, log_model, deployer):
 if __name__ == '__main__':
     # /Users/rafaelchaves/Library/Application Support/CoalescenceML/mlflow_runs
     mlflow_deploy_config = BaseDeployerConfig(
-        image_name="my_image"
+        # image_name="sklearn_model_image"
     )
     pipe = sample_pipeline(
         importer=importer(),
         trainer=trainer(),
         log_model=log_model(),
-        deployer=LocalDeployer(mlflow_deploy_config)
+        deployer=KubernetesDeployer(mlflow_deploy_config)
     )
     pipe.run()

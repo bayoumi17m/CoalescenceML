@@ -12,6 +12,8 @@ class LocalDeployer(BaseMLflowDeployer):
 
     def entrypoint(self, model_uri: str, config: BaseDeployerConfig) -> dict:
         image_name = config.image_name
+        if image_name is None:
+            image_name = "mlflow_model_image"
         self.build_model_image(model_uri, image_name)
         self.run_container(image_name)
         return {}

@@ -1,4 +1,5 @@
 import os
+import pkgutil
 
 TEMPLATE_DIR = "deploy_templates"
 DEPLOYMENT_TEMPLATE_FILE = os.path.join(TEMPLATE_DIR, "deploy_template.yaml")
@@ -29,12 +30,11 @@ class DeploymentYAMLConfig:
                 that all occurences of fi will be replaced by ri in the
                 output file.
         """
-        with open(template_file) as f:
-            templ = f.read()
+        template = pkgutil.get_data(__name__, template_file).decode("utf-8")
         for find, replace in replacements:
-            templ = templ.replace(find, replace)
+            template = template.replace(find, replace)
         with open(out_file, "w") as f:
-            f.write(templ)
+            f.write(template)
 
     def create_deployment_yaml(self):
         """Writes the deployment yaml file from the deployment template."""
