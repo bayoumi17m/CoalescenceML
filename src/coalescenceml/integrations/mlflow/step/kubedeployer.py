@@ -21,7 +21,7 @@ logger = get_logger(__name__)
 class KubernetesDeployer(BaseMLflowDeployer):
     """Step class for deploying model to Kubernetes."""
 
-    def config_deployment(self, deployment_name, registry_path):
+    def config_deployment(self, deployment_name: str, registry_path: str) -> DeploymentYAMLConfig:
         """Configures the deployment.yaml and service.yaml files for deployment."""
         yaml_config = DeploymentYAMLConfig(
             deployment_name, registry_path)
@@ -36,19 +36,20 @@ class KubernetesDeployer(BaseMLflowDeployer):
         self.run_cmd(deploy_cmd)
         self.run_cmd(service_cmd)
 
-    def get_deployment_info(self, service_name) -> dict:
+    def get_deployment_info(self, service_name: str) -> dict:
         proc = subprocess.run(["kubectl", "get", "service",
                                service_name, "--output=json"], capture_output=True)
         return json.loads(proc.stdout)
 
     def entrypoint(self, model_uri: str, config: BaseDeployerConfig) -> dict:
-        container_registry = Directory(skip_directory_check=True).active_stack.container_registry
+        container_registry = Directory(
+            skip_directory_check=True).active_stack.container_registry
         if container_registry is None:
             logger.error(
                 f"Container registry not configured. Please set the container "
                 f"registry uri with coml container-registry register "
                 f"<name> --uri=<registry uri> --type="
-                f"<registry type>." 
+                f"<registry type>."
             )
             # Not sure what error to raise here
             exit(1)

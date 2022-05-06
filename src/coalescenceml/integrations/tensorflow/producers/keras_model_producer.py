@@ -1,6 +1,7 @@
 import os
-import tensorflow as tf
 from typing import Any, Type
+
+import tensorflow as tf
 
 from coalescenceml.artifacts import ModelArtifact
 from coalescenceml.io import fileio
@@ -10,12 +11,12 @@ from coalescenceml.producers.producer_registry import register_producer_class
 
 
 logger = get_logger(__name__)
-DEFAULT_FILENAME = "data.h5"
+DEFAULT_FILENAME = "model.keras.hdf5"
 
 
 @register_producer_class
-class TFProducer(BaseProducer):
-    """Read/Write TensorFlow files."""
+class KerasModelProducer(BaseProducer):
+    """Read/Write Keras Model files."""
 
     ARTIFACT_TYPES = (ModelArtifact,)
     TYPES = (tf.keras.Model,)
@@ -24,13 +25,11 @@ class TFProducer(BaseProducer):
         """Reads keras model from h5 file."""
         super().handle_input(data_type)
         filepath = os.path.join(self.artifact.uri, DEFAULT_FILENAME)
-        with fileio.open(filepath, "rb") as fp:
-            contents = tf.keras.models.load_model(fp)
+        contents = tf.keras.models.load_model(filepath)
         return contents
 
     def handle_return(self, model: tf.keras.Model) -> None:
         """Writes a keras model to artifact store as h5"""
         super().handle_return(model)
         filepath = os.path.join(self.artifact.uri, DEFAULT_FILENAME)
-        with fileio.open(filepath, "wb") as fp:
-            model.save_model(filepath)
+        model.save(filepath)
