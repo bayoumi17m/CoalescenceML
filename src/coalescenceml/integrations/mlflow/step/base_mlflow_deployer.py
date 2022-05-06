@@ -1,13 +1,11 @@
 import os
 import subprocess
-import sys
 from coalescenceml.logger import get_logger
 from coalescenceml.model_deployments.base_deploy_step import BaseDeploymentStep
 from coalescenceml.step import BaseStepConfig
 from coalescenceml.integrations.exceptions import IntegrationError
 from coalescenceml.config.global_config import GlobalConfiguration
 import mlflow
-# from mlflow.pyfunc.model import PythonModel
 
 logger = get_logger(__name__)
 
@@ -16,14 +14,19 @@ class BaseDeployerConfig(BaseStepConfig):
     image_name: str = None
 
 
+def get_mlflow_runs_dir() -> str:
+    """Returns the path to the mlflow runs directory within the global
+    configuration."""
+    config_dir = GlobalConfiguration(
+    ).config_directory  # Maybe just make mlflow_runs_dir another field of GlobalConfiguration()
+    return os.path.join(config_dir, "mlflow_runs")
+
+
 class BaseMLflowDeployer(BaseDeploymentStep):
     def run_cmd(self, cmd: str) -> None:
         """Helper function for running a bash command."""
         logger.debug(f"Executing command: {' '.join(cmd)}")
-        proc = subprocess.run(cmd, text=True, check=True)
-        if proc.returncode != 0:
-            logger.error(f"Command failed: {proc.stderr}")
-            sys.exit(1)
+        subprocess.run(cmd, text=True, check=True)
 
     def build_model_image(self, model_uri: str, image_name: str) -> None:
         """Builds a docker image that serves the model.
@@ -40,8 +43,7 @@ class BaseMLflowDeployer(BaseDeploymentStep):
 
     def get_uri(self, model):
         """Gets the mlflow uri for the MLFlow model."""
-        run_dir = os.path.join(
-            GlobalConfiguration().config_directory, "mlflow_runs")
+        run_dir = get_mlflow_runs_dir()
         mlflow.set_tracking_uri(run_dir)
         model_info = mlflow.pyfunc.log_model(
             artifact_path="model", python_model=model)
@@ -54,11 +56,10 @@ class BaseMLflowDeployer(BaseDeploymentStep):
             IntegrationError if no such model can be found in the
               config directory.
         """
-        config_dir = GlobalConfiguration().config_directory
-        runs_dir = os.path.join(config_dir, "mlflow_runs")
+        runs_dir = get_mlflow_runs_dir()
         if not os.path.exists(runs_dir):
             raise IntegrationError(
-                f"mlflow_runs directory not found in {config_dir}.")
+                f"MLFlow runs directory not found at {runs_dir}.")
         experiments = [s for s in os.listdir(runs_dir) if s.isnumeric()]
         if len(experiments) == 0:
             raise IntegrationError(

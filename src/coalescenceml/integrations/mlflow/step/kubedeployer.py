@@ -1,19 +1,14 @@
-from coalescenceml.logger import get_logger
+import json
+import os
+import subprocess
+from coalescenceml.directory import Directory
+from coalescenceml.integrations.mlflow.exceptions import ConfigurationError
 from coalescenceml.integrations.mlflow.step.base_mlflow_deployer import (
     BaseMLflowDeployer,
     BaseDeployerConfig
 )
 from coalescenceml.integrations.mlflow.step.yaml_config import DeploymentYAMLConfig
-from coalescenceml.step import BaseStepConfig
-from coalescenceml.integrations.exceptions import IntegrationError
-import json
-import os
-import subprocess
-from coalescenceml.config.global_config import GlobalConfiguration
-from coalescenceml.directory import Directory
-from sklearn.base import BaseEstimator
-from typing import Any, Dict
-import mlflow
+from coalescenceml.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -29,7 +24,7 @@ class KubernetesDeployer(BaseMLflowDeployer):
         yaml_config.create_service_yaml()
         return yaml_config
 
-    def deploy(self):
+    def deploy(self) -> None:
         """Applies the deployment and service yamls."""
         deploy_cmd = ["kubectl", "apply", "-f", "deployment.yaml"]
         service_cmd = ["kubectl", "apply", "-f", "service.yaml"]
@@ -37,22 +32,30 @@ class KubernetesDeployer(BaseMLflowDeployer):
         self.run_cmd(service_cmd)
 
     def get_deployment_info(self, service_name: str) -> dict:
-        proc = subprocess.run(["kubectl", "get", "service",
-                               service_name, "--output=json"], capture_output=True)
+        """Returns json output of kubectl get service <service_name>."""
+        proc = subprocess.run(
+            ["kubectl", "get", "service", service_name, "--output=json"],
+            capture_output=True,
+            check=True
+        )
         return json.loads(proc.stdout)
 
     def entrypoint(self, model_uri: str, config: BaseDeployerConfig) -> dict:
         container_registry = Directory(
             skip_directory_check=True).active_stack.container_registry
         if container_registry is None:
-            logger.error(
-                f"Container registry not configured. Please set the container "
-                f"registry uri with coml container-registry register "
-                f"<name> --uri=<registry uri> --type="
-                f"<registry type>."
+            # this might be a bit too long lol, Maybe just paste
+            # a link to a tutorial/docs in the future.
+            raise ConfigurationError(
+                "Container registry not configured. Please set the container "
+                "registry uri with:\n"
+                "\"coml container-registry register "
+                "<container registry name> --uri=<registry uri> --type="
+                "<registry type>\", and then register a new stack with:\n"
+                "\"coml stack register <stack name> "
+                "-c <container registry name> ... <other stack components>\" "
+                "and\n\"coml stack set <stack name>\""
             )
-            # Not sure what error to raise here
-            exit(1)
         registry_path = container_registry.uri
         deployment_name = "mlflow-deployment"
         service_name = "mlflow-deployment-service"
@@ -66,4 +69,6 @@ class KubernetesDeployer(BaseMLflowDeployer):
         self.deploy()
         yaml_config.cleanup()
         deployment_info = self.get_deployment_info(service_name)
+        # not sure how else to display deployment info
+        logger.info(deployment_info)
         return deployment_info
