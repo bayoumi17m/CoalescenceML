@@ -7,7 +7,6 @@ from coalescenceml.step.base_step import BaseStep
 from torch.utils.data import DataLoader, TensorDataset
 
 
-
 class PTClassifierConfig(BaseStepConfig):
     layers: List
     input_shape: Tuple[int, ...] = (28,28) # MNIST Size
