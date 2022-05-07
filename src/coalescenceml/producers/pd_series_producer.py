@@ -45,4 +45,3 @@ class pdSeriesProducer(BaseProducer):
             os.path.join(self.artifact.uri, DATA_FILENAME), "wb"
         ) as fp:
           series.to_pickle(fp)
-
