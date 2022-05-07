@@ -3,6 +3,8 @@ import pickle
 import sklearn as sk
 import torch
 import torch.nn as nn
+from typing import Any, Type
+
 
 from coalescenceml.artifacts import ModelArtifact
 from coalescenceml.logger import get_logger
@@ -21,7 +23,7 @@ class PyTorchProducer(BaseProducer):
     """Read/Write Pytorch files."""
 
     ARTIFACT_TYPES = (
-        ModelArtifact
+        ModelArtifact,
     )
     TYPES = (nn.Module,)
 

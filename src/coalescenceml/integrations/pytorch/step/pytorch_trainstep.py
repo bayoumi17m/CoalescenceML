@@ -15,7 +15,7 @@ class PTClassifierConfig(BaseStepConfig):
     epochs: int = 10
     batch_size: int = 32
         
-class PyTorchClassifierTrainStep(BaseStep):
+class PTClassifierTrainStep(BaseStep):
     # Note to users: layers parameter shouldn't have 1 as last - it is automatically done
     # an out of box fully-connected NN with linear layers only + relu activation
     def entrypoint(

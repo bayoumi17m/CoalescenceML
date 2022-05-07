@@ -6,6 +6,7 @@ EVIDENTLY = "evidently"  # Profiling
 GCP = "gcp"  # Artifact store
 KUBEFLOW = "kubeflow"  # Orchestrator, Metadata store
 MLFLOW = "mlflow"  # Deployer, logging, context
+PANDAS = "pandas" # special producers
 PYTORCH = "pytorch"  # Special producers
 PYTORCH_L = "pytorch_lightning"  # Special producers
 S3 = "s3"  # Artifact store
