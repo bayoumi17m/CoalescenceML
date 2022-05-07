@@ -37,7 +37,7 @@ class AWSArtifactStore(BaseArtifactStore):
     def copyfile(src: PathType, dst: PathType, overwrite: bool = False) -> None:
         """Copy a file from the source to the destination."""
         self.s3fs.copy(src,dst)
-        
+
     def exists(path: PathType) -> bool:
         """Returns `True` if the given path exists."""
         return self.s3fs.exists(path)
@@ -83,7 +83,7 @@ class AWSArtifactStore(BaseArtifactStore):
 
     def rmtree(path: PathType) -> None:
         """Deletes dir recursively. Dangerous operation."""
-        self.s3fs.rmdir(path)
+        self.s3fs.rm(path)
 
     def stat(path: PathType) -> Any:
         """Return the stat descriptor for a given file path."""
@@ -107,8 +107,8 @@ class AWSArtifactStore(BaseArtifactStore):
         """
         iter = self.s3fs.walk(top)	
         if topdown:
-            iter
+            return iter
         else:
-            iter.reverse()
+            return reversed(list(iter))
 
  
