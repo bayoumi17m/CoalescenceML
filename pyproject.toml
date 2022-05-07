@@ -211,4 +211,3 @@ verbose = 1
 quiet = false
 whitelist-regex = []
 color = true
-

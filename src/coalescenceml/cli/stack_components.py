@@ -233,7 +233,7 @@ def generate_stack_component_delete_command(
         """Deletes a stack component."""
         cli_utils.print_active_profile()
         Directory().deregister_stack_component(
-            component_type=component_type,
+            component_flavor=component_type,
             name=name,
         )
         display_name = component_display_name_helper(component_type)
