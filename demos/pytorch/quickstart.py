@@ -64,7 +64,7 @@ def pt_evaluator(
 def sample_pipeline(importer, trainer, evaluator):
     X_train, y_train, X_test, y_test = importer()
     model = trainer(X_train, y_train)
-    mse = evaluator(model, X_test, y_test)
+    acc = evaluator(model, X_test, y_test)
 
 if __name__ == '__main__':
 
