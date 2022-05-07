@@ -13,7 +13,7 @@ class LocalDeployer(BaseMLflowDeployer):
         """Runs a docker container."""
         self.run_cmd(["docker", "run", "-d", "-p", f"{port}:8080", image_name])
 
-    def entrypoint(self, model_uri: str, config: BaseDeployerConfig) -> dict:
+    def entrypoint(self, model_uri: str, config: BaseDeployerConfig, port: int = 5000) -> dict:
         image_name = config.image_name
         if image_name is None:
             image_name = "mlflow_model_image"
