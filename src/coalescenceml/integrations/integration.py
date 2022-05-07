@@ -31,6 +31,7 @@ class Integration(metaclass=IntegrationMeta):
 
     REQUIREMENTS: List[str] = []
 
+    # tool name : command to check
     SYSTEM_REQUIREMENTS: Dict[str, str] = {}
 
     @classmethod
