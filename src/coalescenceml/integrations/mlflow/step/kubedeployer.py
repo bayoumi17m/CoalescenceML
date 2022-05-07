@@ -61,8 +61,8 @@ class KubernetesDeployer(BaseMLflowDeployer):
             registry_path = container_registry.uri
             image_path = os.path.join(registry_path, image_name)
         self.build_model_image(model_uri, image_path)
-        # if not local:
-        self.push_image(image_path)
+        if not local:
+            self.push_image(image_path)
         deployment_name = "mlflow-deployment"
         yaml_config = self.config_deployment(deployment_name, image_path)
         self.deploy()
