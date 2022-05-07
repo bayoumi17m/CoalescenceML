@@ -5,7 +5,6 @@ import pandas
 import enum
 from typing import Optional
 from coalescenceml.step.base_step import BaseStep
-from profile_config import ProfileConfig, TaskType
 from evidently.model_profile import Profile
 from evidently.dashboard import Dashboard
 
@@ -19,6 +18,29 @@ from evidently.dashboard.tabs import DataQualityTab, DataDriftTab, \
   NumTargetDriftTab, CatTargetDriftTab, RegressionPerformanceTab, \
   ClassificationPerformanceTab, ProbClassificationPerformanceTab
 
+class TaskType(enum.Enum):
+  Regression = 1
+  Classification = 2
+
+class EvidentlyProfileConfig():
+  def __init__(self, 
+    task : TaskType,
+    target="target", 
+    prediction="prediction", 
+    datetime="datetime", 
+    id="id",
+    profiles = [],
+    numerical_features=[], 
+    categorical_features=[]) -> None:
+      self.target = target
+      self.prediction = prediction
+      self.datetime = datetime
+      self.id = id
+      self.numerical_features = numerical_features
+      self.categorical_features = categorical_features
+
+      self.profiles = profiles
+      self.task = task
 
 class EvidentlyProfileTypes(enum.Enum):
     DataQuality = 1
@@ -30,7 +52,7 @@ class EvidentlyProfileTypes(enum.Enum):
     ProbClassificationPerformance = 7
 
 class EvidentlyProfileStep(BaseStep):
-  def getColumnMapping(self, config : ProfileConfig):
+  def getColumnMapping(self, config : EvidentlyProfileConfig):
     column_mapping = ColumnMapping()
 
     column_mapping.target = config.target #'y' is the name of the column with the target function
@@ -46,7 +68,7 @@ class EvidentlyProfileStep(BaseStep):
     return column_mapping
 
   def entrypoint(self,
-      profileConfig : ProfileConfig, 
+      profileConfig : EvidentlyProfileConfig, 
       reference : pandas.core.frame.DataFrame, 
       current : pandas.core.frame.DataFrame,
       json = False,
