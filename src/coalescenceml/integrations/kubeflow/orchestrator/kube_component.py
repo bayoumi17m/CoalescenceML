@@ -29,7 +29,7 @@ from kubernetes import client as k8s_client
 from tfx.dsl.components.base import base_node as tfx_base_node
 from tfx.orchestration import data_types
 from tfx.orchestration import pipeline as tfx_pipeline
-from tfx.orchestration.kubeflow.proto import kubeflow_pb2
+# from tfx.orchestration.kubeflow.proto import kubeflow_pb2
 from tfx.proto.orchestration import pipeline_pb2
 
 from google.protobuf import json_format
@@ -77,7 +77,7 @@ class KubeComponent:
                  pipeline: tfx_pipeline.Pipeline,
                  pipeline_root: dsl.PipelineParam,
                  tfx_image: str,
-                 kubeflow_metadata_config: kubeflow_pb2.KubeflowMetadataConfig,
+                 #  kubeflow_metadata_config: kubeflow_pb2.KubeflowMetadataConfig,
                  tfx_ir: pipeline_pb2.Pipeline,
                  pod_labels_to_attach: Dict[str, str],
                  runtime_parameters: List[data_types.RuntimeParameter],
@@ -105,14 +105,11 @@ class KubeComponent:
         arguments = [
             '--pipeline_root',
             pipeline_root,
-            '--kubeflow_metadata_config',
-            json_format.MessageToJson(
-                message=kubeflow_metadata_config, preserving_proto_field_name=True),
+            # '--kubeflow_metadata_config',
+            # json_format.MessageToJson(
+            # message=kubeflow_metadata_config, preserving_proto_field_name=True),
             '--node_id',
             component.id,
-            # TODO(b/182220464): write IR to pipeline_root and let
-            # container_entrypoint.py read it back to avoid future issue that IR
-            # exeeds the flag size limit.
             '--tfx_ir',
             json_format.MessageToJson(tfx_ir),
             '--metadata_ui_path',
@@ -139,7 +136,6 @@ class KubeComponent:
             logging.info('   ->  Component: %s', op.name)
             self.container_op.after(op)
 
-        # TODO(b/140172100): Document the use of additional_pipeline_args.
         if _WORKFLOW_ID_KEY in pipeline.additional_pipeline_args:
             # Allow overriding pipeline's run_id externally, primarily for testing.
             self.container_op.container.add_env_variable(

@@ -17,7 +17,8 @@ if TYPE_CHECKING:
     from coalescenceml.pipeline.runtime_configuration import (
         RuntimeConfiguration,
     )
-    from coalescenceml.stack import Stack, StackValidator
+    from coalescenceml.stack import Stack
+from coalescenceml.stack.stack_validator import StackValidator
 
 
 logger = get_logger(__name__)

@@ -31,9 +31,8 @@ from tfx.orchestration import data_types
 from tfx.orchestration import pipeline as tfx_pipeline
 from tfx.orchestration import tfx_runner
 from tfx.orchestration.config import pipeline_config
-from coalescenceml.integrations.kubeflow.orchestrator import kube_component
-from tfx.orchestration.kubeflow import utils
-from tfx.orchestration.kubeflow.proto import kubeflow_pb2
+from coalescenceml.integrations.kubeflow.orchestrator import kube_component, utils
+# from tfx.orchestration.kubeflow.proto import kubeflow_pb2
 from tfx.orchestration.launcher import base_component_launcher
 from tfx.orchestration.launcher import in_process_component_launcher
 from tfx.orchestration.launcher import kubernetes_component_launcher
@@ -114,28 +113,28 @@ def get_default_pipeline_operator_funcs(
         return [mount_config_map_op]
 
 
-def get_default_kubeflow_metadata_config(
-) -> kubeflow_pb2.KubeflowMetadataConfig:
-    """Returns the default metadata connection config for Kubeflow.
-    Returns:
-      A config proto that will be serialized as JSON and passed to the running
-      container so the TFX component driver is able to communicate with MLMD in
-      a Kubeflow cluster.
-    """
-    # The default metadata configuration for a Kubeflow Pipelines cluster is
-    # codified as a Kubernetes ConfigMap
-    # https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/base/metadata/metadata-grpc-configmap.yaml
+# def get_default_kubeflow_metadata_config(
+# ) -> kubeflow_pb2.KubeflowMetadataConfig:
+#     """Returns the default metadata connection config for Kubeflow.
+#     Returns:
+#       A config proto that will be serialized as JSON and passed to the running
+#       container so the TFX component driver is able to communicate with MLMD in
+#       a Kubeflow cluster.
+#     """
+#     # The default metadata configuration for a Kubeflow Pipelines cluster is
+#     # codified as a Kubernetes ConfigMap
+#     # https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/base/metadata/metadata-grpc-configmap.yaml
 
-    config = kubeflow_pb2.KubeflowMetadataConfig()
-    # The environment variable to use to obtain the Metadata gRPC service host in
-    # the cluster that is backing Kubeflow Metadata. Note that the key in the
-    # config map and therefore environment variable used, are lower-cased.
-    config.grpc_config.grpc_service_host.environment_variable = 'METADATA_GRPC_SERVICE_HOST'
-    # The environment variable to use to obtain the Metadata grpc service port in
-    # the cluster that is backing Kubeflow Metadata.
-    config.grpc_config.grpc_service_port.environment_variable = 'METADATA_GRPC_SERVICE_PORT'
+#     config = kubeflow_pb2.KubeflowMetadataConfig()
+#     # The environment variable to use to obtain the Metadata gRPC service host in
+#     # the cluster that is backing Kubeflow Metadata. Note that the key in the
+#     # config map and therefore environment variable used, are lower-cased.
+#     config.grpc_config.grpc_service_host.environment_variable = 'METADATA_GRPC_SERVICE_HOST'
+#     # The environment variable to use to obtain the Metadata grpc service port in
+#     # the cluster that is backing Kubeflow Metadata.
+#     config.grpc_config.grpc_service_port.environment_variable = 'METADATA_GRPC_SERVICE_PORT'
 
-    return config
+#     return config
 
 
 def get_default_pod_labels() -> Dict[str, str]:
@@ -160,10 +159,8 @@ class KubeflowDagRunnerConfig(pipeline_config.PipelineConfig):
         self,
         pipeline_operator_funcs: Optional[List[OpFunc]] = None,
         tfx_image: Optional[str] = None,
-        kubeflow_metadata_config: Optional[
-            kubeflow_pb2.KubeflowMetadataConfig] = None,
-        # TODO(b/143883035): Figure out the best practice to put the
-        # SUPPORTED_LAUNCHER_CLASSES
+        # kubeflow_metadata_config: Optional[
+        #     kubeflow_pb2.KubeflowMetadataConfig] = None,
         supported_launcher_classes: Optional[List[Type[
             base_component_launcher.BaseComponentLauncher]]] = None,
         metadata_ui_path: str = '/mlpipeline-ui-metadata.json',
@@ -203,8 +200,8 @@ class KubeflowDagRunnerConfig(pipeline_config.PipelineConfig):
         self.pipeline_operator_funcs = (
             pipeline_operator_funcs or get_default_pipeline_operator_funcs())
         self.tfx_image = tfx_image or DEFAULT_KUBEFLOW_TFX_IMAGE
-        self.kubeflow_metadata_config = (
-            kubeflow_metadata_config or get_default_kubeflow_metadata_config())
+        # self.kubeflow_metadata_config = (
+        #     kubeflow_metadata_config or get_default_kubeflow_metadata_config())
         self.metadata_ui_path = metadata_ui_path
 
 
@@ -324,13 +321,13 @@ class KubeflowDagRunner(tfx_runner.TfxRunner):
                 tfx_node_ir.nodes[
                     0].pipeline_node.execution_options.caching_options.enable_cache = False
 
-            kfp_component = kube_component.BaseComponent(
+            kfp_component = kube_component.KubeComponent(
                 component=component,
                 depends_on=depends_on,
                 pipeline=pipeline,
                 pipeline_root=pipeline_root,
                 tfx_image=self._config.tfx_image,
-                kubeflow_metadata_config=self._config.kubeflow_metadata_config,
+                # kubeflow_metadata_config=self._config.kubeflow_metadata_config,
                 pod_labels_to_attach=self._pod_labels_to_attach,
                 tfx_ir=tfx_node_ir,
                 metadata_ui_path=self._config.metadata_ui_path,
