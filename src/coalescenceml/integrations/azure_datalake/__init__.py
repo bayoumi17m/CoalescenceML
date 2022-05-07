@@ -6,7 +6,7 @@ class AzureIntegration(Integration):
     """Integration for AZURE."""
 
     NAME = AZURE
-    REQUIREMENTS = ["adlfs==none"]
+    REQUIREMENTS = ["adlfs==2022.4.0"]
 
     @classmethod
     def activate(cls) -> None:
