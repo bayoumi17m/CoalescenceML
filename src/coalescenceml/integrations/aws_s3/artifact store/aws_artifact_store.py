@@ -19,6 +19,12 @@ class S3ArtifactStore(BaseArtifactStore):
     # Class Configuration
     s3fs: Optional[S3FileSystem] = None
 
+    @property 
+    def filesystem(self):
+        if not self.s3fs:
+            self.s3fs = S3FileSystem()
+        return self.s3fs
+
     def open(name: PathType) -> Any:
         """Open a file at the given path."""
         return self.s3fs.open(name)
