@@ -15,8 +15,10 @@
 
 import argparse
 import copy
+import importlib
 import json
 import logging
+from msilib.schema import Directory
 import os
 import sys
 import textwrap
@@ -39,8 +41,19 @@ from tfx.types import channel
 from tfx.types import standard_artifacts
 from tfx.utils import telemetry_utils
 
+import kfp
+from kubernetes import config as k8s_config
+
 from google.protobuf import json_format
 from ml_metadata.proto import metadata_store_pb2
+
+import coalescenceml
+from coalescenceml.artifacts import BaseArtifact
+from coalescenceml.artifacts.type_registry import type_registry
+from coalescenceml.integrations.registry import integration_registry
+from coalescenceml.step import BaseStep
+from coalescenceml.step.utils import generate_component_class
+from coalescenceml.utils import source_utils
 
 _KFP_POD_NAME_ENV_KEY = 'KFP_POD_NAME'
 _KFP_POD_NAME_PROPERTY_KEY = 'kfp_pod_name'
@@ -389,6 +402,7 @@ def _parse_runtime_parameter_str(param: str) -> Tuple[str, types.Property]:
 
 
 def _resolve_runtime_parameters(tfx_ir: pipeline_pb2.Pipeline,
+                                run_name: str,
                                 parameters: Optional[List[str]]) -> None:
     """Resolve runtime parameters in the pipeline proto inplace."""
     if parameters is None:
@@ -397,7 +411,7 @@ def _resolve_runtime_parameters(tfx_ir: pipeline_pb2.Pipeline,
     parameter_bindings = {
         # Substitute the runtime parameter to be a concrete run_id
         constants.PIPELINE_RUN_ID_PARAMETER_NAME:
-            os.environ['WORKFLOW_ID'],
+            run_name,
     }
     # Argo will fill runtime parameter values in the parameters.
     for param in parameters:
@@ -408,6 +422,47 @@ def _resolve_runtime_parameters(tfx_ir: pipeline_pb2.Pipeline,
                                                          parameter_bindings)
 
 
+def get_run_name() -> str:
+    """Get the KFP run name."""
+    k8s_config.load_incluster_config()
+    run_id = os.environ["KFP_RUN_ID"]
+    return kfp.Client().get_run(run_id).run.name
+
+
+def create_executer_class(
+    step: BaseStep,
+    executer_class: str,
+    input_artifact_type_mapping: Dict[str, str],
+) -> None:
+    """Create an executer class for a step."""
+    producers = step.get_producers(ensure_complete=True)
+
+    input_spec = {}
+    for input_name, input_artifact_type in input_artifact_type_mapping.items():
+        artifact_class = source_utils.load_source_path_class(
+            input_artifact_type)
+        if not issubclass(artifact_class, BaseArtifact):
+            raise ValueError("")
+
+        input_spec[input_name] = artifact_class
+
+    output_spec = {}
+    for key, value in step.OUTPUT_SIGNATURE.items():
+        output_spec[key] = type_registry.get_artifact_type(value)
+
+    execution_params = {
+        **step.PARAM_SPEC,
+        **step._internal_execution_parameters,
+    }
+
+    generate_component_class(
+        step_name=step.name,
+        input_spec=input_spec,
+        output_spec=output_spec,
+        execution_parameter_names=set(execution_params.keys()),
+    )
+
+
 def main(argv):
     # Log to the container's stdout so Kubeflow Pipelines UI can display logs to
     # the user.
@@ -415,15 +470,20 @@ def main(argv):
     logging.getLogger().setLevel(logging.INFO)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--pipeline_root', type=str, required=True)
+    # parser.add_argument('--pipeline_root', type=str, required=True)
     parser.add_argument(
         '--metadata_ui_path',
         type=str,
         required=False,
-        default='/mlpipeline-ui-metadata.json')
-    parser.add_argument('--kubeflow_metadata_config', type=str, required=True)
+        default='/tmp/mlpipeline-ui-metadata.json')
+    # parser.add_argument('--kubeflow_metadata_config', type=str, required=True)
     parser.add_argument('--tfx_ir', type=str, required=True)
     parser.add_argument('--node_id', type=str, required=True)
+    parser.add_argument('--main_module', type=str, required=True)
+    parser.add_argument('--step_module', type=str, required=True)
+    parser.add_argument('--step_name', type=str, required=True)
+    parser.add_argument('--input_artifact_type_mapping',
+                        type=str, required=True)
     # There might be multiple runtime parameters.
     # `args.runtime_parameter` should become List[str] by using "append".
     parser.add_argument('--runtime_parameter', type=str, action='append')
@@ -436,47 +496,82 @@ def main(argv):
     tfx_ir = pipeline_pb2.Pipeline()
     json_format.Parse(args.tfx_ir, tfx_ir)
 
-    _resolve_runtime_parameters(tfx_ir, args.runtime_parameter)
+    run_name = get_run_name()
+
+    _resolve_runtime_parameters(tfx_ir, run_name, args.runtime_parameter)
+
+    node_id = args.node_id
+    pipeline_node = _get_pipeline_node(tfx_ir, node_id)
 
     deployment_config = runner_utils.extract_local_deployment_config(tfx_ir)
 
-    kubeflow_metadata_config = kubeflow_pb2.KubeflowMetadataConfig()
-    json_format.Parse(args.kubeflow_metadata_config, kubeflow_metadata_config)
-    metadata_connection = metadata.Metadata(
-        _get_metadata_connection_config(kubeflow_metadata_config))
+    # kubeflow_metadata_config = kubeflow_pb2.KubeflowMetadataConfig()
+    # json_format.Parse(args.kubeflow_metadata_config, kubeflow_metadata_config)
+    # metadata_connection = metadata.Metadata(
+    #     _get_metadata_connection_config(kubeflow_metadata_config))
 
-    node_id = args.node_id
+    # node_id = args.node_id
     # Attach necessary labels to distinguish different runner and DSL.
     # TODO(zhitaoli): Pass this from KFP runner side when the same container
     # entrypoint can be used by a different runner.
-    with telemetry_utils.scoped_labels({
-        telemetry_utils.LABEL_TFX_RUNNER: 'kfp',
-    }):
-        custom_executor_operators = {
-            executable_spec_pb2.ContainerExecutableSpec:
-                kubernetes_executor_operator.KubernetesExecutorOperator
-        }
+    # with telemetry_utils.scoped_labels({
+    #     telemetry_utils.LABEL_TFX_RUNNER: 'kfp',
+    # }):
+    # custom_executor_operators = {
+    #     executable_spec_pb2.ContainerExecutableSpec:
+    #         kubernetes_executor_operator.KubernetesExecutorOperator
+    # }
 
-        executor_spec = runner_utils.extract_executor_spec(deployment_config,
-                                                           node_id)
-        custom_driver_spec = runner_utils.extract_custom_driver_spec(
-            deployment_config, node_id)
+    executor_spec = runner_utils.extract_executor_spec(deployment_config,
+                                                       node_id)
+    custom_driver_spec = runner_utils.extract_custom_driver_spec(
+        deployment_config, node_id)
 
-        pipeline_node = _get_pipeline_node(tfx_ir, node_id)
-        component_launcher = launcher.Launcher(
-            pipeline_node=pipeline_node,
-            mlmd_connection=metadata_connection,
-            pipeline_info=tfx_ir.pipeline_info,
-            pipeline_runtime_spec=tfx_ir.runtime_spec,
-            executor_spec=executor_spec,
-            custom_driver_spec=custom_driver_spec,
-            custom_executor_operators=custom_executor_operators)
-        logging.info('Component %s is running.', node_id)
-        execution_info = component_launcher.launch()
-        logging.info('Component %s is finished.', node_id)
+    integration_regsitry.activate_integrations()
+    metadata_store = Directory().active_stack.metadata_store
+    metadata_connection = metadata.Metadata(
+        metadata_store.get_tfx_metadata_config()
+    )
+
+    # Import main module and grab all elements in it.
+    importlib.import_module(args.main_module)
+    coalescenceml.constants.USER_MAIN_MODULE = args.main_module
+
+    step_module = importlib.import_module(args.step_module)
+    step_class = getattr(step_module, args.step_name)
+    step_instance = cast(BaseStep, step_class())
+
+    if hasattr(executor_spec, 'class_path'):
+        executor_module = getattr(executor_spec, 'class_path').split('.')
+        executor_class = ".".join(executor_module[:-1])
+        create_executer_class(
+            step=step_instance,
+            executer_class=executor_class,
+            input_artifact_type_mapping=json.loads(
+                args.input_artifact_type_mapping),
+        )
+    else:
+        raise ValueError("Executor spec does not have class_path.")
+
+    custom_executor_operators = {
+        executable_spec_pb2.PythonClassEcxecutableSpec: step_instance.executor_operator,
+    }
+
+    component_launcher = launcher.Launcher(
+        pipeline_node=pipeline_node,
+        mlmd_connection=metadata_connection,
+        pipeline_info=tfx_ir.pipeline_info,
+        pipeline_runtime_spec=tfx_ir.runtime_spec,
+        executor_spec=executor_spec,
+        custom_driver_spec=custom_driver_spec,
+        custom_executor_operators=custom_executor_operators)
+    logging.info('Component %s is running.', node_id)
+    execution_info = component_launcher.launch()
+    logging.info('Component %s is finished.', node_id)
 
     # Dump the UI metadata.
-    _dump_ui_metadata(pipeline_node, execution_info, args.metadata_ui_path)
+    if execution_info:
+        _dump_ui_metadata(pipeline_node, execution_info, args.metadata_ui_path)
 
 
 if __name__ == '__main__':

@@ -16,8 +16,10 @@
 import collections
 import copy
 import os
-from typing import Any, Callable, Dict, List, Optional, Type, cast, MutableMapping
+import sys
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type, cast, MutableMapping
 from absl import logging
+from numpy import isin
 
 from kfp import compiler
 from kfp import dsl
@@ -28,16 +30,28 @@ from tfx.dsl.compiler import compiler as tfx_compiler
 from tfx.dsl.components.base import base_component as tfx_base_component
 from tfx.dsl.components.base import base_node
 from tfx.orchestration import data_types
-from tfx.orchestration import pipeline as tfx_pipeline
 from tfx.orchestration import tfx_runner
 from tfx.orchestration.config import pipeline_config
 from coalescenceml.integrations.kubeflow.orchestrator import kube_component, utils
 # from tfx.orchestration.kubeflow.proto import kubeflow_pb2
+from tfx.orchestration.pipeline import Pipeline as TfxPipeline
+from tfx.orchestration.pipeline import ROOT_PARAMETER as TFX_PIPELINE_ROOT_PARAMETER
 from tfx.orchestration.launcher import base_component_launcher
 from tfx.orchestration.launcher import in_process_component_launcher
 from tfx.orchestration.launcher import kubernetes_component_launcher
 from tfx.proto.orchestration import pipeline_pb2
+from tfx.proto.orchestration.pipeline_pb2 import Pb2Pipeline
 from tfx.utils import telemetry_utils
+
+from coalescenceml.orchestrator import utils
+from coalescenceml.utils.source_utils import (
+    get_module_source_from_module,
+)
+
+if TYPE_CHECKING:
+    from coalescenceml.pipeline import BasePipeline
+    from coalescenceml.pipeline.runtime_configuration import RuntimeConfiguration
+    from coalescenceml.stack import Stack
 
 
 # OpFunc represents the type of a function that takes as input a
@@ -74,6 +88,7 @@ def _mount_config_map_op(config_map_name: str) -> OpFunc:
     return mount_config_map
 
 
+# Use within GKE for getting the default GCP service account secret name.
 def _mount_secret_op(secret_name: str) -> OpFunc:
     """Mounts all key-value pairs found in the named Kubernetes Secret.
     All key-value pairs in the Secret are mounted as environment variables.
@@ -157,13 +172,13 @@ class KubeflowDagRunnerConfig(pipeline_config.PipelineConfig):
 
     def __init__(
         self,
+        image: str,
         pipeline_operator_funcs: Optional[List[OpFunc]] = None,
-        tfx_image: Optional[str] = None,
         # kubeflow_metadata_config: Optional[
         #     kubeflow_pb2.KubeflowMetadataConfig] = None,
         supported_launcher_classes: Optional[List[Type[
             base_component_launcher.BaseComponentLauncher]]] = None,
-        metadata_ui_path: str = '/mlpipeline-ui-metadata.json',
+        metadata_ui_path: str = '/outputs/mlpipeline-ui-metadata.json',
             **kwargs):
         """Creates a KubeflowDagRunnerConfig object.
         The user can use pipeline_operator_funcs to apply modifications to
@@ -199,7 +214,7 @@ class KubeflowDagRunnerConfig(pipeline_config.PipelineConfig):
             supported_launcher_classes=supported_launcher_classes, **kwargs)
         self.pipeline_operator_funcs = (
             pipeline_operator_funcs or get_default_pipeline_operator_funcs())
-        self.tfx_image = tfx_image or DEFAULT_KUBEFLOW_TFX_IMAGE
+        self.image = image
         # self.kubeflow_metadata_config = (
         #     kubeflow_metadata_config or get_default_kubeflow_metadata_config())
         self.metadata_ui_path = metadata_ui_path
@@ -211,10 +226,12 @@ class KubeflowDagRunner(tfx_runner.TfxRunner):
     """
 
     def __init__(self,
-                 output_dir: Optional[str] = None,
-                 output_filename: Optional[str] = None,
-                 config: Optional[KubeflowDagRunnerConfig] = None,
-                 pod_labels_to_attach: Optional[Dict[str, str]] = None):
+                 #  output_dir: Optional[str] = None,
+                 #  output_filename: Optional[str] = None,
+                 config: KubeflowDagRunnerConfig,
+                 output_path: str,
+                 pod_labels_to_attach: Optional[Dict[str, str]] = None,
+                 ):
         """Initializes KubeflowDagRunner for compiling a Kubeflow Pipeline.
         Args:
           output_dir: An optional output directory into which to output the pipeline
@@ -233,19 +250,19 @@ class KubeflowDagRunner(tfx_runner.TfxRunner):
             3. pipeline unique ID,
             where 2 and 3 are instrumentation of usage tracking.
         """
-        if config and not isinstance(config, KubeflowDagRunnerConfig):
+        if not isinstance(config, KubeflowDagRunnerConfig):
             raise TypeError('config must be type of KubeflowDagRunnerConfig.')
-        super().__init__(config or KubeflowDagRunnerConfig())
+        super().__init__(config)
         self._config = cast(KubeflowDagRunnerConfig, self._config)
-        self._output_dir = output_dir or os.getcwd()
-        self._output_filename = output_filename
+        # self._output_dir = output_dir or os.getcwd()
+        # self._output_filename = output_filename
+        self._output_path = output_path
         self._compiler = compiler.Compiler()
         self._tfx_compiler = tfx_compiler.Compiler()
         self._params = []  # List of dsl.PipelineParam used in this pipeline.
         self._params_by_component_id = collections.defaultdict(list)
         # Set of unique param names used.
         self._deduped_parameter_names = set()
-        self._exit_handler = None
         if pod_labels_to_attach is None:
             self._pod_labels_to_attach = get_default_pod_labels()
         else:
@@ -265,7 +282,7 @@ class KubeflowDagRunner(tfx_runner.TfxRunner):
             if not isinstance(parameter, data_types.RuntimeParameter):
                 continue
             # Ignore pipeline root because it will be added later.
-            if parameter.name == tfx_pipeline.ROOT_PARAMETER.name:
+            if parameter.name == TFX_PIPELINE_ROOT_PARAMETER:
                 continue
             if parameter.name in deduped_parameter_names_for_component:
                 continue
@@ -284,24 +301,24 @@ class KubeflowDagRunner(tfx_runner.TfxRunner):
                 self._params.append(dsl_parameter)
 
     def _parse_parameter_from_pipeline(self,
-                                       pipeline: tfx_pipeline.Pipeline) -> None:
+                                       pipeline: TfxPipeline) -> None:
         """Extract all the RuntimeParameter placeholders from the pipeline."""
 
         for component in pipeline.components:
             self._parse_parameter_from_component(component)
 
-    def _construct_pipeline_graph(self, pipeline: tfx_pipeline.Pipeline,
-                                  pipeline_root: dsl.PipelineParam):
+    def _construct_pipeline_graph(self, pipeline: "BasePipeline",
+                                  tfx_pipeline: TfxPipeline,
+                                  stack: "Stack",
+                                  runtime_configuration: "RuntimeConfiguration",
+                                  ) -> None:
         """Constructs a Kubeflow Pipeline graph.
         Args:
           pipeline: The logical TFX pipeline to base the construction on.
           pipeline_root: dsl.PipelineParam representing the pipeline root.
         """
         component_to_kfp_op = {}
-
-        for component in pipeline.components:
-            utils.replace_exec_properties(component)
-        tfx_ir = self._generate_tfx_ir(pipeline)
+        tfx_ir: Pb2Pipeline = self._generate_tfx_ir(tfx_pipeline)
 
         # Assumption: There is a partial ordering of components in the list, i.e.,
         # if component A depends on component B and C, then A appears after B and C
@@ -316,44 +333,39 @@ class KubeflowDagRunner(tfx_runner.TfxRunner):
             # remove the extra pipeline node information
             tfx_node_ir = self._dehydrate_tfx_ir(tfx_ir, component.id)
 
-            # Disable cache for exit_handler
-            if self._exit_handler and component.id == self._exit_handler.id:
-                tfx_node_ir.nodes[
-                    0].pipeline_node.execution_options.caching_options.enable_cache = False
+            main_module = get_module_source_from_module(
+                sys.modules["__main__"]
+            )
+
+            step_module = component.component_type.split(".")[:-1]
+            if step_module[0] == "__main__":
+                step_module = main_module
+            else:
+                step_module = ".".join(step_module)
 
             kfp_component = kube_component.KubeComponent(
+                main_module=main_module,
+                step_module=step_module,
+                step_function_name=component.id,
                 component=component,
                 depends_on=depends_on,
-                pipeline=pipeline,
-                pipeline_root=pipeline_root,
-                tfx_image=self._config.tfx_image,
-                # kubeflow_metadata_config=self._config.kubeflow_metadata_config,
+                image=self._config.image,
                 pod_labels_to_attach=self._pod_labels_to_attach,
                 tfx_ir=tfx_node_ir,
+                # pipeline=pipeline,
+                # pipeline_root=pipeline_root,
+                # tfx_image=self._config.tfx_image,
+                # # kubeflow_metadata_config=self._config.kubeflow_metadata_config,
+
+                # tfx_ir=tfx_node_ir,
                 metadata_ui_path=self._config.metadata_ui_path,
                 runtime_parameters=(self._params_by_component_id[component.id] +
-                                    [tfx_pipeline.ROOT_PARAMETER]))
+                                    [TFX_PIPELINE_ROOT_PARAMETER]))
 
             for operator in self._config.pipeline_operator_funcs:
                 kfp_component.container_op.apply(operator)
 
             component_to_kfp_op[component] = kfp_component.container_op
-
-        # If exit handler defined create an exit handler and add all ops to it.
-        if self._exit_handler:
-            exit_op = component_to_kfp_op[self._exit_handler]
-            with dsl.ExitHandler(exit_op) as exit_handler_group:
-                exit_handler_group.name = utils.TFX_DAG_NAME
-                # KFP get_default_pipeline should have the pipeline object when invoked
-                # while compiling. This allows us to retrieve all ops from pipeline
-                # group (should be the only group in the pipeline).
-                pipeline_group = dsl.Pipeline.get_default_pipeline().groups[0]
-
-                # Transfer all ops to exit_handler_group which will now contain all ops.
-                exit_handler_group.ops = pipeline_group.ops
-                # remove all ops from pipeline_group. Otherwise compiler fails in
-                # https://github.com/kubeflow/pipelines/blob/8aee62142aa13ae42b2dd18257d7e034861b7e5e/sdk/python/kfp/compiler/compiler.py#L893
-                pipeline_group.ops = []
 
     def _del_unused_field(self, node_id: str, message_dict: MutableMapping[str,
                                                                            Any]):
@@ -361,8 +373,8 @@ class KubeflowDagRunner(tfx_runner.TfxRunner):
             if item != node_id:
                 del message_dict[item]
 
-    def _dehydrate_tfx_ir(self, original_pipeline: pipeline_pb2.Pipeline,
-                          node_id: str) -> pipeline_pb2.Pipeline:
+    def _dehydrate_tfx_ir(self, original_pipeline: Pb2Pipeline,
+                          node_id: str) -> Pb2Pipeline:
         pipeline = copy.deepcopy(original_pipeline)
         for node in pipeline.nodes:
             if (node.WhichOneof('node') == 'pipeline_node' and
@@ -381,67 +393,64 @@ class KubeflowDagRunner(tfx_runner.TfxRunner):
         return pipeline
 
     def _generate_tfx_ir(
-            self, pipeline: tfx_pipeline.Pipeline) -> Optional[pipeline_pb2.Pipeline]:
+            self, pipeline: TfxPipeline) -> Optional[Pb2Pipeline]:
         result = self._tfx_compiler.compile(pipeline)
         return result
 
-    def run(self, pipeline: tfx_pipeline.Pipeline):
+    def run(self,
+            pipeline: "BasePipeline",
+            stack: "Stack",
+            runtime_configuration: "RuntimeConfiguration",
+            ) -> None:
         """Compiles and outputs a Kubeflow Pipeline YAML definition file.
         Args:
           pipeline: The logical TFX pipeline to use when building the Kubeflow
             pipeline.
         """
-        # If exit handler is defined, append to existing pipeline components.
-        if self._exit_handler:
-            original_pipeline = pipeline
-            pipeline = copy.copy(original_pipeline)
-            pipeline.components.append(self._exit_handler)
+        tfx_pipeline = utils.create_tfx_pipeline(
+            pipeline, stack, runtime_configuration
+        )
 
-        for component in pipeline.components:
+        pipeline_root = tfx_pipeline.pipeline_info.pipeline_root
+        if not isinstance(pipeline_root, str):
+            raise ValueError(
+                "Pipeline root must not be a placeholder but a specific string.")
+
+        for component in tfx_pipeline.components:
             # TODO(b/187122662): Pass through pip dependencies as a first-class
             # component flag.
             if isinstance(component, tfx_base_component.BaseComponent):
                 component._resolve_pip_dependencies(  # pylint: disable=protected-access
-                    pipeline.pipeline_info.pipeline_root)
+                    pipeline_root)
 
-        # KFP DSL representation of pipeline root parameter.
-        dsl_pipeline_root = dsl.PipelineParam(
-            name=tfx_pipeline.ROOT_PARAMETER.name,
-            value=pipeline.pipeline_info.pipeline_root)
-        self._params.append(dsl_pipeline_root)
+        # # KFP DSL representation of pipeline root parameter.
+        # dsl_pipeline_root = dsl.PipelineParam(
+        #     name=tfx_pipeline.ROOT_PARAMETER.name,
+        #     value=pipeline.pipeline_info.pipeline_root)
+        # self._params.append(dsl_pipeline_root)
 
         def _construct_pipeline():
             """Constructs a Kubeflow pipeline.
             Creates Kubeflow ContainerOps for each TFX component encountered in the
             logical pipeline definition.
             """
-            self._construct_pipeline_graph(pipeline, dsl_pipeline_root)
+            self._construct_pipeline_graph(
+                pipeline,
+                tfx_pipeline,
+                stack,
+                runtime_configuration,
+            )
+            # dsl_pipeline_root)
 
         # Need to run this first to get self._params populated. Then KFP compiler
         # can correctly match default value with PipelineParam.
-        self._parse_parameter_from_pipeline(pipeline)
+        self._parse_parameter_from_pipeline(tfx_pipeline)
 
-        file_name = self._output_filename or get_default_output_filename(
-            pipeline.pipeline_info.pipeline_name)
+        # file_name = self._output_filename or get_default_output_filename(
+        #     pipeline.pipeline_info.pipeline_name)
         # Create workflow spec and write out to package.
         self._compiler._create_and_write_workflow(  # pylint: disable=protected-access
             pipeline_func=_construct_pipeline,
-            pipeline_name=pipeline.pipeline_info.pipeline_name,
+            pipeline_name=tfx_pipeline.pipeline_info.pipeline_name,
             params_list=self._params,
-            package_path=os.path.join(self._output_dir, file_name))
-
-    def set_exit_handler(self, exit_handler: base_node.BaseNode):
-        """Set exit handler components for the Kubeflow dag runner.
-        This feature is currently experimental without backward compatibility
-        gaurantee.
-        Args:
-          exit_handler: exit handler component.
-        """
-        if not exit_handler:
-            logging.error('Setting empty exit handler is not allowed.')
-            return
-        assert not exit_handler.downstream_nodes, ('Exit handler should not depend '
-                                                   'on any other node.')
-        assert not exit_handler.upstream_nodes, ('Exit handler should not depend on'
-                                                 ' any other node.')
-        self._exit_handler = exit_handler
+            package_path=self._output_path)
