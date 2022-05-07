@@ -7,9 +7,9 @@ import torch.nn as nn
 from coalescenceml.pipeline import pipeline
 from coalescenceml.step import step, Output
 from coalescenceml.integrations.constants import PYTORCH
-from coalescenceml.integrations.pytorch import (
+from coalescenceml.integrations.pytorch.step import (
     PTClassifierConfig,
-    PyTorchClassifierTrainStep,
+    PTClassifierTrainStep,
 )
 
 @step
@@ -36,7 +36,7 @@ def importer() -> Output(
 def pt_trainer(X_train: np.ndarray, y_train: np.ndarray) -> Output(model=nn.Module):
     config = PTClassifierConfig(layers=[32,64], num_classes=2, batch_size=17)
 
-    classifierStep = PyTorchClassifierTrainStep()
+    classifierStep = PTClassifierTrainStep()
     model = classifierStep.entrypoint(config, X_train, y_train)
     return model
 
@@ -56,7 +56,7 @@ def pt_evaluator(
         y_pred = round(y_pred.item())
         if (y_pred == y_test[i]):
           acc +=1
-    
+    print("Accuracy: ", acc / len(X_test))
     return acc / len(X_test)
 
 
