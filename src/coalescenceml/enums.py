@@ -9,6 +9,8 @@ class DictEnum(str, Enum):
     ..note: This is a subclass of str as well for nice properties with respect
         to logging.
     """
+    def __str__(self)->str:
+        return self.value
 
     @classmethod
     def names(cls) -> List[str]:
