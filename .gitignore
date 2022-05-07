@@ -1,5 +1,7 @@
 # Special CoalescenceML directory
 .coalescence/
+demos/**/poetry.lock
+demos/**/pyproject.toml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
