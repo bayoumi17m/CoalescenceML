@@ -80,8 +80,8 @@ class AzureArtifactStore(BaseArtifactStore):
         return self.abfs.info(path)
 
     def walk(self, top: PathType, topdown: bool = True, onerror: Optional[Callable[..., None]] = None) -> Iterable[Tuple[PathType, List[PathType], List[PathType]]]:
-        iter = self.abfs.walk(top)
+        it = self.abfs.walk(top)
         if topdown:
-            return iter 
+            it = list(it)
         else: 
-            return iter.reverse()
+            it = reversed(list(it))
