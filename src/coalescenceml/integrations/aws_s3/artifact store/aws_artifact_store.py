@@ -1,9 +1,10 @@
 from ast import Tuple
-import os
 from pathlib import Path
 from s3fs import S3FileSystem
 
 from coalescenceml.artifact_store.base_artifact_store import BaseArtifactStore, PathType
+from coalescenceml.integrations.constants import AWS_ENDPOINT_STR, AWS_ENDPOINT_URL
+
 
 from typing import (
     Any,
@@ -13,16 +14,20 @@ from typing import (
     Optional,
 )
 
-class S3ArtifactStore(BaseArtifactStore):
+class AWSArtifactStore(BaseArtifactStore):
     """ Artifact Store for AWS S3""" 
 
     # Class Configuration
     s3fs: Optional[S3FileSystem] = None
+    region: Optional[str] = None
 
     @property 
     def filesystem(self):
         if not self.s3fs:
-            self.s3fs = S3FileSystem()
+            if region:
+                self.s3fs = S3FileSystem(client_kwargs={"endpoint_url": AWS_ENDPOINT_STR + region + AWS_ENDPOINT_URL})
+            else:
+                self.s3fs = S3FileSystem()
         return self.s3fs
 
     def open(name: PathType) -> Any:
@@ -31,10 +36,8 @@ class S3ArtifactStore(BaseArtifactStore):
 
     def copyfile(src: PathType, dst: PathType, overwrite: bool = False) -> None:
         """Copy a file from the source to the destination."""
-        temp_file = tempfile.TemporaryFile()
-        self.s3fs.get(src, temp_file)
-        self.s3fs.put(temp_file, dst)
-
+        self.s3fs.copy(src,dst)
+        
     def exists(path: PathType) -> bool:
         """Returns `True` if the given path exists."""
         return self.s3fs.exists(path)
