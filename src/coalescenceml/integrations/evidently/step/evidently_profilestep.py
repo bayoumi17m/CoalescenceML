@@ -8,7 +8,7 @@ from coalescenceml.step.base_step import BaseStep
 from evidently.model_profile import Profile
 from evidently.dashboard import Dashboard
 
-from evidently import ColumnMapping
+from evidently.pipeline.column_mapping import ColumnMapping
 
 from evidently.model_profile.sections import DataQualityProfileSection, \
   DataDriftProfileSection, NumTargetDriftProfileSection, CatTargetDriftProfileSection,\
@@ -22,26 +22,6 @@ class TaskType(enum.Enum):
   Regression = 1
   Classification = 2
 
-class EvidentlyProfileConfig():
-  def __init__(self, 
-    task : TaskType,
-    target="target", 
-    prediction="prediction", 
-    datetime="datetime", 
-    id="id",
-    profiles = [],
-    numerical_features=[], 
-    categorical_features=[]) -> None:
-      self.target = target
-      self.prediction = prediction
-      self.datetime = datetime
-      self.id = id
-      self.numerical_features = numerical_features
-      self.categorical_features = categorical_features
-
-      self.profiles = profiles
-      self.task = task
-
 class EvidentlyProfileTypes(enum.Enum):
     DataQuality = 1
     DataDrift = 2
@@ -51,11 +31,41 @@ class EvidentlyProfileTypes(enum.Enum):
     ClassificationPerformance = 6
     ProbClassificationPerformance = 7
 
-class EvidentlyProfileStep(BaseStep):
-  def getColumnMapping(self, config : EvidentlyProfileConfig):
-    column_mapping = ColumnMapping()
+class EvidentlyProfileConfig():
+  task = TaskType.Regression
+  target="target" 
+  prediction="prediction" 
+  datetime="datetime"
+  id="id"
+  numerical_features=[] 
+  categorical_features=[]
 
-    column_mapping.target = config.target #'y' is the name of the column with the target function
+  def __init__(self, 
+    task : TaskType,
+    target="target", 
+    prediction="prediction", 
+    datetime="datetime", 
+    id="id",
+    numerical_features=[], 
+    categorical_features=[]):
+      self.target = target
+      self.prediction = prediction
+      self.datetime = datetime
+      self.id = id
+      self.numerical_features = numerical_features
+      self.categorical_features = categorical_features
+
+      self.task = task
+
+
+class EvidentlyProfileStep():
+  def getColumnMapping(self, config : EvidentlyProfileConfig) -> ColumnMapping:
+    column_mapping = ColumnMapping()
+    print(column_mapping.target)
+    print(column_mapping.prediction)
+    print(config.prediction)
+
+    column_mapping.target = 'target' # is the name of the column with the target function
     column_mapping.prediction = config.prediction #'pred' is the name of the column(s) with model predictions
     column_mapping.id = config.id #there is no ID column in the dataset
     column_mapping.datetime = config.datetime #'date' is the name of the column with datetime 
@@ -68,11 +78,11 @@ class EvidentlyProfileStep(BaseStep):
     return column_mapping
 
   def entrypoint(self,
-      profileConfig : EvidentlyProfileConfig, 
+      config : EvidentlyProfileConfig, 
       reference : pandas.core.frame.DataFrame, 
       current : pandas.core.frame.DataFrame,
-      json = False,
-      save_loc = None) -> Optional[str]:    #train-test split??
+      profiles: list,
+      json = True) -> Str:    #train-test split??
     """
       Datadrift requires a reference and a current 
       Data quality either requires reference, or reference and current
@@ -97,18 +107,18 @@ class EvidentlyProfileStep(BaseStep):
     }
     # build tabs based on successful input 
     tabs = []
-    for profile_type in profileConfig.profiles:
+    for profile_type in profiles:
       tabs.append(evidentlyMap[profile_type][int(json is True)]) #if json, gets index 1
 
+    print(tabs)
     if not json:
       dashboard = Dashboard(tabs=tabs)
-      dashboard.calculate(reference, current, column_mapping=self.getColumnMapping(profileConfig))
-      dashboard.save(save_loc)
+      dashboard.calculate(reference, current, column_mapping=self.getColumnMapping(config))
       ret = dashboard.html()
     else:
-      profile = Profile(sections=tabs)
-      profile.calculate(reference, current, column_mapping=self.getColumnMapping(profileConfig))
-      ret = profile.json()
+      dashboard = Profile(sections=tabs)
+      dashboard.calculate(reference, current, column_mapping=self.getColumnMapping(config))
+      ret = dashboard.json()
 
     return ret
        
