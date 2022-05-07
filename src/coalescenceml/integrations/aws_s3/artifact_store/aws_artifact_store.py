@@ -24,49 +24,49 @@ class AWSArtifactStore(BaseArtifactStore):
     @property 
     def filesystem(self):
         if not self.s3fs:
-            if region:
+            if self.region:
                 self.s3fs = S3FileSystem(client_kwargs={"endpoint_url": AWS_ENDPOINT_STR + region + AWS_ENDPOINT_URL})
             else:
                 self.s3fs = S3FileSystem()
         return self.s3fs
 
-    def open(name: PathType) -> Any:
+    def open(self, name: PathType) -> Any:
         """Open a file at the given path."""
         return self.s3fs.open(name)
 
-    def copyfile(src: PathType, dst: PathType, overwrite: bool = False) -> None:
+    def copyfile(self, src: PathType, dst: PathType, overwrite: bool = False) -> None:
         """Copy a file from the source to the destination."""
         self.s3fs.copy(src,dst)
 
-    def exists(path: PathType) -> bool:
+    def exists(self, path: PathType) -> bool:
         """Returns `True` if the given path exists."""
         return self.s3fs.exists(path)
 
-    def glob(pattern: PathType) -> List[PathType]:
+    def glob(self, pattern: PathType) -> List[PathType]:
         """Return the paths that match a glob pattern."""
         return self.s3fs.glob(pattern)
 
-    def isdir(path: PathType) -> bool:
+    def isdir(self, path: PathType) -> bool:
         """Returns whether the given path points to a directory."""
         return self.s3fs.isdir(path)
 
-    def listdir(path: PathType) -> List[PathType]:
+    def listdir(self, path: PathType) -> List[PathType]:
         """Returns a list of files under a given directory in the filesystem."""
         return self.s3fs.ls(path)
 
-    def makedirs(path: PathType) -> None:
+    def makedirs(self, path: PathType) -> None:
         """Make a directory at the given path, recursively creating parents."""
         self.s3fs.mkdir(path, createParents = False)
 
-    def mkdir(path: PathType) -> None:
+    def mkdir(self, path: PathType) -> None:
         """Make a directory at the given path; parent directory must exist."""
         self.s3fs.mkdir(path)
 
-    def remove(path: PathType) -> None:
+    def remove(self, path: PathType) -> None:
         """Remove the file at the given path. Dangerous operation."""
         self.s3fs.rm(path)
 
-    def rename(src: PathType, dst: PathType, overwrite: bool = False) -> None:
+    def rename(self, src: PathType, dst: PathType, overwrite: bool = False) -> None:
         """Rename source file to destination file.
         Args:
             src: The path of the file to rename.
@@ -81,15 +81,16 @@ class AWSArtifactStore(BaseArtifactStore):
             )
         self.s3fs.rename(src, dst)
 
-    def rmtree(path: PathType) -> None:
+    def rmtree(self, path: PathType) -> None:
         """Deletes dir recursively. Dangerous operation."""
         self.s3fs.rm(path)
 
-    def stat(path: PathType) -> Any:
+    def stat(self, path: PathType) -> Any:
         """Return the stat descriptor for a given file path."""
         return self.s3fs.info(path)
 
     def walk(
+        self, 
         top: PathType,
         topdown: bool = True,
         onerror: Optional[Callable[..., None]] = None,

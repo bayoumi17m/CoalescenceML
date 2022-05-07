@@ -10,7 +10,7 @@ class AWSIntegration(Integration):
 
     @classmethod
     def activate(cls) -> None:
-        from coalescenceml.integrations.aws_s33 import artifact_store
+        from coalescenceml.integrations.aws_s3 import artifact_store
 
 
 AWSIntegration.check_installation()
