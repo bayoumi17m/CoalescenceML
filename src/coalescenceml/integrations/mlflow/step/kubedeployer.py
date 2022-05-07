@@ -41,34 +41,33 @@ class KubernetesDeployer(BaseMLflowDeployer):
         return json.loads(proc.stdout)
 
     def entrypoint(self, model_uri: str, config: BaseDeployerConfig) -> dict:
-        container_registry = Directory(
-            skip_directory_check=True).active_stack.container_registry
-        if container_registry is None:
-            # this might be a bit too long lol, Maybe just paste
-            # a link to a tutorial/docs in the future.
-            raise ConfigurationError(
-                "Container registry not configured. Please set the container "
-                "registry uri with:\n"
-                "\"coml container-registry register "
-                "<container registry name> --uri=<registry uri> --type="
-                "<registry type>\", and then register a new stack with:\n"
-                "\"coml stack register <stack name> "
-                "-c <container registry name> ... <other stack components>\" "
-                "and\n\"coml stack set <stack name>\""
-            )
-        registry_path = container_registry.uri
-        deployment_name = "mlflow-deployment"
-        service_name = "mlflow-deployment-service"
         image_name = config.image_name
         if image_name is None:
             image_name = "mlflow_model_image"
-        image_path = os.path.join(registry_path, image_name)
+        container_registry = Directory(
+            skip_directory_check=True).active_stack.container_registry
+        if container_registry is None:
+            logger.warning(
+                "Container registry not configured. Local image "
+                f"{image_name} will be deployed. To configure, use:\n"
+                "\"coml container-registry register "
+                "<container registry name> --uri=<registry uri> --type="
+                "<registry type>\""
+            )
+            image_path = image_name
+            local = True
+        else:
+            local = False
+            registry_path = container_registry.uri
+            image_path = os.path.join(registry_path, image_name)
         self.build_model_image(model_uri, image_path)
+        # if not local:
         self.push_image(image_path)
+        deployment_name = "mlflow-deployment"
         yaml_config = self.config_deployment(deployment_name, image_path)
         self.deploy()
         yaml_config.cleanup()
+        service_name = "mlflow-deployment-service"
         deployment_info = self.get_deployment_info(service_name)
-        # not sure how else to display deployment info
         logger.info(deployment_info)
         return deployment_info
