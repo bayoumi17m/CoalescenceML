@@ -28,7 +28,6 @@ def stack() -> None:
     """Stacks to define various environments."""
 
 
-
 @stack.command("register", context_settings=dict(ignore_unknown_options=True))
 @click.argument("stack_name", type=str, required=True)
 @click.option(
@@ -130,7 +129,7 @@ def register_stack_helper(
     step_operator_name: Optional[str] = None,
     feature_store_name: Optional[str] = None,
     model_deployer_name: Optional[str] = None,
-)-> None:
+) -> None:
     cli_utils.print_active_profile()
 
     with console.status(f"Registering stack '{stack_name}'...\n"):
@@ -434,7 +433,7 @@ def export_stack(stack_name: Optional[str], filepath: Optional[str]) -> None:
 def import_component_helper(
     component_flavor: StackComponentFlavor, component_config: Dict[str, str],
 ) -> str:
-    """ """
+    """ Return the name of a component if it exists """
     component_type = StackComponentFlavor(component_flavor)
     component_name = component_config.pop("name")
     component_flavor = component_config.pop("flavor")
@@ -462,7 +461,6 @@ def import_component_helper(
         if found_component:
             return component_name
 
-
         # Component exists so must be renamed
         display_name = component_display_name_helper(
             component_type
@@ -484,7 +482,6 @@ def import_component_helper(
     return component_name
 
 
-
 @stack.command("import")
 @click.argument("filepath", type=str, required=True)
 def import_stack(filepath: str) -> None:
@@ -500,7 +497,6 @@ def import_stack(filepath: str) -> None:
             f"while the current version of CoalescenceML is {coalescenceml.__version__}."
         )
         return
-
 
     dir_ = Directory()
     registered_stacks = {
