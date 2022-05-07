@@ -25,7 +25,7 @@ class AWSArtifactStore(BaseArtifactStore):
     def filesystem(self):
         if not self.s3fs:
             if self.region:
-                self.s3fs = S3FileSystem(client_kwargs={"endpoint_url": AWS_ENDPOINT_STR + region + AWS_ENDPOINT_URL})
+                self.s3fs = S3FileSystem(client_kwargs={"endpoint_url": AWS_ENDPOINT_STR + self.region + AWS_ENDPOINT_URL})
             else:
                 self.s3fs = S3FileSystem()
         return self.s3fs
