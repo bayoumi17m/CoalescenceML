@@ -39,6 +39,7 @@ class BaseMetadataStore(StackComponent, ABC):
 
     # Class Configuration
     TYPE: ClassVar[StackComponentFlavor] = StackComponentFlavor.METADATA_STORE
+    FLAVOR: ClassVar[str]
 
     upgrade_migration_enabled: bool = True
     _tfx_config: Optional[Union[
