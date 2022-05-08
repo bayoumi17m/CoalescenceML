@@ -12,6 +12,7 @@ logger = get_logger(__name__)
 
 class BaseDeployerConfig(BaseStepConfig):
     image_name: str = None
+    port : int = None
 
 
 def get_mlflow_runs_dir() -> str:

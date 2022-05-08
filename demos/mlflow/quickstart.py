@@ -45,7 +45,6 @@ def log_model(model: BaseEstimator) -> Output(model_uri=str):
     mlflow.sklearn.log_model(model, "model")
     artifact_uri = mlflow.get_artifact_uri()
     model_uri = os.path.join(artifact_uri, "model")
-    model_uri = "s3://coml-mlflow-models/sklearn-regression-model"
     return model_uri
 
 
@@ -65,6 +64,6 @@ if __name__ == '__main__':
         importer=importer(),
         trainer=trainer(),
         log_model=log_model(),
-        deployer=KubernetesDeployer(mlflow_deploy_config)
+        deployer=LocalDeployer(mlflow_deploy_config)
     )
     pipe.run()
