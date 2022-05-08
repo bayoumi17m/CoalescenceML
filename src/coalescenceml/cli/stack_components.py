@@ -1,6 +1,6 @@
 import time
 from importlib import import_module
-from typing import Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import click
 from rich.markdown import Markdown
@@ -14,7 +14,7 @@ from coalescenceml.directory import Directory
 from coalescenceml.stack import StackComponent
 
 
-def _component_display_name(
+def component_display_name_helper(
     component_type: StackComponentFlavor
 ) -> str:
     """Human-readable name for a stack component."""
@@ -50,6 +50,25 @@ def _get_stack_component(
     )
     return component
 
+def register_stack_component_helper(
+    component_type: StackComponentFlavor,
+    component_name: str,
+    component_flavor: str,
+    **kwargs: Dict[str, Any],
+) -> None:
+    """Register a stack component helper."""
+    from coalescenceml.stack.stack_component_class_registry import (
+        StackComponentClassRegistry,
+    )
+
+    component_cls = StackComponentClassRegistry.get_class(
+        component_type=component_type,
+        component_flavor=component_flavor,
+    )
+
+    component = component_cls(name=component_name, **kwargs)
+    Directory().register_stack_component(component)
+
 
 def generate_stack_component_get_command(
     component_type: StackComponentFlavor,
@@ -64,7 +83,7 @@ def generate_stack_component_get_command(
 
         active_stack = Directory().active_stack
         component = active_stack.components.get(component_type, None)
-        display_name = _component_display_name(component_type)
+        display_name = component_display_name_helper(component_type)
         if component:
             cli_utils.info(f"Active {display_name}: '{component.name}'")
         else:
@@ -90,7 +109,7 @@ def generate_stack_component_describe_command(
         cli_utils.print_active_profile()
         cli_utils.print_active_stack()
 
-        display_name = _component_display_name(component_type)
+        display_name = component_display_name_helper(component_type)
         dir_ = Directory()
         components = dir_.get_stack_components(component_type)
         if len(components) == 0:
@@ -142,7 +161,7 @@ def generate_stack_component_list_command(
         dir_ = Directory()
 
         components = dir_.get_stack_components(component_type)
-        display_name = _component_display_name(component_type)
+        display_name = component_display_name_helper(component_type)
         if len(components) == 0:
             cli_utils.warning(f"No {display_name} registered.")
             return
@@ -164,7 +183,7 @@ def generate_stack_component_register_command(
     component_type: StackComponentFlavor,
 ) -> Callable[[str, str, List[str]], None]:
     """Generates a `register` command for the specific stack component type."""
-    display_name = _component_display_name(component_type)
+    display_name = component_display_name_helper(component_type)
 
     @click.argument(
         "name",
@@ -191,15 +210,14 @@ def generate_stack_component_register_command(
             cli_utils.error(str(e))
             return
 
-        from coalescenceml.stack.stack_component_class_registry import (
-            StackComponentClassRegistry,
+
+        register_stack_component_helper(
+            component_type=component_type,
+            component_name=component_name,
+            component_flavor=component_flavor,
+            **parsed_args,
         )
 
-        component_class = StackComponentClassRegistry.get_class(
-            component_type=component_type, component_flavor=flavor
-        )
-        component = component_class(name=name, **parsed_args)
-        Directory().register_stack_component(component)
         cli_utils.info(f"Successfully registered {display_name} `{name}`.")
 
     return register_stack_component_command
@@ -218,7 +236,7 @@ def generate_stack_component_delete_command(
             component_type=component_type,
             name=name,
         )
-        display_name = _component_display_name(component_type)
+        display_name = component_display_name_helper(component_type)
         cli_utils.info(f"Deleted {display_name}: {name}")
 
     return delete_stack_component_command
@@ -236,7 +254,7 @@ def generate_stack_component_up_command(
         cli_utils.print_active_stack()
 
         component = _get_stack_component(component_type, component_name=name)
-        display_name = _component_display_name(component_type)
+        display_name = component_display_name_helper(component_type)
 
         if component.is_running:
             cli_utils.info(
@@ -288,7 +306,7 @@ def generate_stack_component_down_command(
         cli_utils.print_active_stack()
 
         component = _get_stack_component(component_type, component_name=name)
-        display_name = _component_display_name(component_type)
+        display_name = component_display_name_helper(component_type)
 
         if not force:
             if not component.is_suspended:
@@ -346,7 +364,7 @@ def generate_stack_component_logs_command(
         cli_utils.print_active_stack()
 
         component = _get_stack_component(component_type, component_name=name)
-        display_name = _component_display_name(component_type)
+        display_name = component_display_name_helper(component_type)
         log_file = component.log_file
 
         if not log_file or not fileio.exists(log_file):
@@ -406,7 +424,7 @@ def register_single_stack_component_cli_commands(
 ) -> None:
     """Registers all basic stack component CLI commands."""
     command_name = component_type.value.replace("_", "-")
-    display_name = _component_display_name(component_type)
+    display_name = component_display_name_helper(component_type)
 
     @parent_group.group(
         command_name, help=f"Commands to interact with {display_name}."
