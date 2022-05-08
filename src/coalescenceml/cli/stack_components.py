@@ -213,8 +213,8 @@ def generate_stack_component_register_command(
 
         register_stack_component_helper(
             component_type=component_type,
-            component_name=component_name,
-            component_flavor=component_flavor,
+            component_name=name,
+            component_flavor=flavor,
             **parsed_args,
         )
 

@@ -1,4 +1,4 @@
-from coalescenceml.integrations.kubeflow.metadata_store import (
+from coalescenceml.integrations.kubeflow.metadata_store.kubeflow_metadata_store import (
     KubeflowMetadataStore,
 )
 

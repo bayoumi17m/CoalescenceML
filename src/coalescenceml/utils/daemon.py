@@ -1,15 +1,10 @@
 # https://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/
-from asyncio.log import logger
 import atexit
-from cmath import pi
-from concurrent.futures import process
-import imp
 import os
 import signal
 import sys
 import types
 from typing import Any, Callable, Optional, TypeVar, cast
-from cv2 import log
 
 import psutil
 
@@ -18,7 +13,7 @@ from coalescenceml.logger import get_logger
 logger = get_logger(__name__)
 
 
-F = TypeVar("F", bound=Callable(..., Any))
+F = TypeVar("F", bound=Callable[..., Any])
 
 def daemonize(
     pid_file: str,

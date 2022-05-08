@@ -15,6 +15,9 @@ from coalescenceml.logger import get_logger
 from coalescenceml.metadata_store import BaseMetadataStore
 from coalescenceml.stack import Stack
 from coalescenceml.stack import StackValidator
+from coalescenceml.stack.stack_component_class_registry import (
+    register_stack_component_class
+)
 
 logger = get_logger(__name__)
 
@@ -33,6 +36,7 @@ def i_am_inside_kubeflow():
         return False
 
 
+@register_stack_component_class
 class KubeflowMetadataStore(BaseMetadataStore):
     """Kubeflow GRPC backend for metadata store"""
 
