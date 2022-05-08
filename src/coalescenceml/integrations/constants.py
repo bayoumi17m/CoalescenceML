@@ -1,5 +1,7 @@
 AIRFLOW = "airflow"  # Orchestrator
 AWS = "aws"  # Key vault / Secrets
+AWS_ENDPOINT_S3 = "https://s3." # AWS Artifact Store
+AWS_ENDPOINT_URL = ".amazonaws.com" # AWS Artifact Store
 AZURE = "azure"  # Artifact store, Key vault
 AZUREML = "azureml"  # Step controller (training)
 EVIDENTLY = "evidently"  # Profiling
