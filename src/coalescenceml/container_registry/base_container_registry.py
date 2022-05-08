@@ -1,3 +1,4 @@
+import re
 from typing import ClassVar
 
 from coalescenceml.enums import StackComponentFlavor
@@ -17,3 +18,7 @@ class BaseContainerRegistry(StackComponent):
         StackComponentFlavor
     ] = StackComponentFlavor.CONTAINER_REGISTRY
     FLAVOR: ClassVar[str] = "default"
+
+    @property
+    def is_local(self) -> bool:
+        return re.fullmatch(r"localhost:[0-9]{4,5}", self.uri)

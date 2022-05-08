@@ -16,11 +16,6 @@ class SQLiteMetadataStore(BaseMetadataStore):
     # Class Configuration
     FLAVOR: ClassVar[str] = "sqlite"
 
-    @property
-    def upgrade_migration_enabled(self) -> bool:
-        """Return True to enable automatic database schema migration."""
-        return True
-
     def get_tfx_metadata_config(
         self,
     ) -> Union[

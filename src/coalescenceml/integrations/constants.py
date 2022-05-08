@@ -1,5 +1,7 @@
 AIRFLOW = "airflow"  # Orchestrator
 AWS = "aws"  # Key vault / Secrets
+AWS_ENDPOINT_S3 = "https://s3." # AWS Artifact Store
+AWS_ENDPOINT_URL = ".amazonaws.com" # AWS Artifact Store
 AZURE = "azure"  # Artifact store, Key vault
 AZUREML = "azureml"  # Step controller (training)
 EVIDENTLY = "evidently"  # Profiling
@@ -16,5 +18,4 @@ STATSMODELS = "statsmodels" # Producers;
 TENSORFLOW = "tensorflow"  # Special train step; Producers
 WHYLOGS = "whylogs"  # Data / Model profiling
 VERTEX = "vertex"  # Orchestrator, Step controller
-AWS_ENDPOINT_S3 = "https://s3." # AWS Artifact Store
-AWS_ENDPOINT_URL = ".amazonaws.com" # AWS Artifact Store
+XGBOOST = "xgboost" # producers
