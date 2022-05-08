@@ -83,6 +83,12 @@ class StackComponent(BaseModel, ABC):
     def cleanup_pipeline_run(self) -> None:
         """Cleans up resources after the pipeline run is finished."""
 
+    def prepare_step_run(self) -> None:
+        """Prepare running a step."""
+
+    def cleanup_step_run(self) -> None:
+        """Cleanup resources after the step is run."""
+
     @property
     def validator(self) -> Optional["StackValidator"]:
         """The optional validator of the stack component.

@@ -3,6 +3,10 @@
 demos/**/poetry.lock
 demos/**/pyproject.toml
 
+# wandb
+**wandb/
+!src/coalescenceml/integrations/wandb
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

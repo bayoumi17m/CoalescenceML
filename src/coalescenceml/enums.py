@@ -59,6 +59,7 @@ class StackComponentFlavor(DictEnum):
     ARTIFACT_STORE = "artifact_store"
     CONTAINER_REGISTRY = "container_registry"
     STEP_OPERATOR = "step_operator"  # TODO
+    EXPERIMENT_TRACKER = "experiment_tracker"
     #FEATURE_STORE = "feature_store"  # TODO
     #SECRETS_MANAGER = "secrets_manager"  # TODO
     #MODEL_DEPLOYER = "model_deployer"  # TODO

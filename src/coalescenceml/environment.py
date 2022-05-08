@@ -251,9 +251,13 @@ class Environment(metaclass=SingletonMetaClass):
         Returns:
             The `StepEnvironment` that describes the current step.
         """
-        from coalescenceml.steps import STEP_ENVIRONMENT_NAME, StepEnvironment
+        from coalescenceml.step import STEP_ENVIRONMENT_NAME, StepEnvironment
 
         return cast(StepEnvironment, self[STEP_ENVIRONMENT_NAME])
+
+    @property
+    def step_env(self) -> "StepEnvironment":
+        return self.step_environment
 
 
 _BASE_ENVIRONMENT_COMPONENT_NAME = "base_environment_component"
