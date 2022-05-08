@@ -40,6 +40,10 @@ include = [
 coml = "coalescenceml.cli.cli:cli"
 
 [tool.poetry.dependencies]
+<<<<<<< HEAD
+python = "^3.8"
+evidently = "^0.1.47-alpha.1"
+=======
 python = ">=3.7.1,<3.9"
 ml-pipelines-sdk = "^1.6.1"
 rich = {extras = ["jupyter"], version="^12.0.0"}
@@ -53,6 +57,7 @@ distro = "^1.7.0"
 numpy = "^1.21.6"
 pandas = "^1.2.0"
 pyarrow = "^7.0.0"
+>>>>>>> aff14ab545c61cb915e6bb570c4ebbb63c84e321
 
 [tool.poetry.dev-dependencies]
 xdoctest = "^0.15.10"
