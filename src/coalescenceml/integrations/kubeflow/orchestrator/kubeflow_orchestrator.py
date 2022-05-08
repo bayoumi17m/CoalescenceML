@@ -1,16 +1,20 @@
 from __future__ import annotations
-from importlib.metadata import entry_points
-
 import json
-from typing import TYPE_CHECKING, Any, Dict, ClassVar
+from typing import TYPE_CHECKING, Any, Dict, ClassVar, Optional
+import os
 
 import kfp
+
+import coalescenceml
 from coalescenceml.directory import Directory
 from coalescenceml.enums import MetadataContextFlavor
 from coalescenceml.logger import get_logger
 from coalescenceml.orchestrator import BaseOrchestrator
 from coalescenceml.integrations.kubeflow.orchestrator import utils
 from coalescenceml.utils import docker_utils
+from coalescenceml.stack.stack_component_class_registry import (
+    register_stack_component_class
+)
 
 if TYPE_CHECKING:
     from coalescenceml.pipeline.base_pipeline import BasePipeline
@@ -22,6 +26,8 @@ from coalescenceml.stack.stack_validator import StackValidator
 
 
 logger = get_logger(__name__)
+
+DEFAULT_KFP_UI_PORT = 8080
 
 
 class KubeflowStackValidator(StackValidator):
@@ -43,16 +49,16 @@ class KubeflowStackValidator(StackValidator):
         return True
 
 
+@register_stack_component_class
 class KubeflowOrchestrator(BaseOrchestrator):
     """Orchestrator responsible for running pipelines on Kubeflow."""
-    host: ClassVar[str] = 'local'
-    output_dir: ClassVar[str] = None
-    output_filename: ClassVar[str] = None
-    build_context_path: ClassVar[str] = None
+    kubernetes_context: Optional[str] = None
+    kfp_ui_port: int = DEFAULT_KFP_UI_PORT
+    synchronous: bool = False
+    use_k3d: bool = False
+
     # Class Configuration
     FLAVOR: ClassVar[str] = "kubeflow"
-    image_name: ClassVar[str] = None
-    entrypoints: ClassVar[list[str]] = []
 
     def prepare_pipeline_deployment(
         self,
@@ -67,6 +73,7 @@ class KubeflowOrchestrator(BaseOrchestrator):
             stack: The stack to be deployed.
             runtime_configuration: The runtime configuration to be used.
         """
+        # from coalescenceml.utils.docker_utils import 
 
         # Containerize all steps using docker utils helper functions
         self.image_name = Directory().active_stack.container_registry.uri + \
@@ -78,14 +85,14 @@ class KubeflowOrchestrator(BaseOrchestrator):
         docker_utils.push_docker_image(image_name=self.image_name)
 
     @property
-    def validator(self) -> StackValidator:
+    def validator(self) -> Optional[StackValidator]:
         """Returns the validator for this component."""
-        return KubeflowStackValidator(self.host)
+        return None
 
     @property
     def is_running(self) -> bool:
         """Returns True if the orchestrator is running locally"""
-        return True if self.host == 'local' else False
+        return True
 
     @property
     def runtime_options(self) -> Dict[str, Any]:
@@ -97,6 +104,21 @@ class KubeflowOrchestrator(BaseOrchestrator):
         """
         # TODO
         return {}
+    
+    @property
+    def root_directory(self) -> str:
+        return os.path.join(
+            coalescenceml.io.utils.get_global_config_directory(),
+            "kubeflow",
+            str(self.uuid),
+        )
+    
+    @property
+    def pipeline_directory(self) -> str:
+        return os.path.join(
+            self.root_directory,
+            "pipelines",
+        )
 
     def run_pipeline(
         self,
