@@ -1,15 +1,25 @@
-from typing import Optional
+import json
+from typing import Dict, Any, Optional
 
 import click
 
+import coalescenceml
 from coalescenceml.cli import utils as cli_utils
 from coalescenceml.cli.cli import cli
+from coalescenceml.cli.stack_components import (
+    component_display_name_helper,
+    register_stack_component_helper,
+)
 from coalescenceml.config.global_config import GlobalConfiguration
 from coalescenceml.constants import console
 from coalescenceml.directory import Directory
 from coalescenceml.enums import StackComponentFlavor
 from coalescenceml.stack import Stack
 from coalescenceml.stack.exceptions import ProvisioningError
+from coalescenceml.stack.stack_component_class_registry import (
+    StackComponentClassRegistry,
+)
+from coalescenceml.utils import yaml_utils
 
 
 # Stacks
@@ -105,6 +115,30 @@ def register_stack(
     experiment_tracker_name: Optional[str] = None,
 ) -> None:
     """Register a stack."""
+    register_stack_helper(
+        stack_name=stack_name,
+        metadata_store_name=metadata_store_name,
+        artifact_store_name=artifact_store_name,
+        orchestrator_name=orchestrator_name,
+        container_registry_name=container_registry_name,
+        secrets_manager_name=secrets_manager_name,
+        step_operator_name=step_operator_name,
+        feature_store_name=feature_store_name,
+        model_deployer_name=model_deployer_name,
+    )
+
+
+def register_stack_helper(
+    stack_name: str,
+    metadata_store_name: str,
+    artifact_store_name: str,
+    orchestrator_name: str,
+    container_registry_name: Optional[str] = None,
+    secrets_manager_name: Optional[str] = None,
+    step_operator_name: Optional[str] = None,
+    feature_store_name: Optional[str] = None,
+    model_deployer_name: Optional[str] = None,
+) -> None:
     cli_utils.print_active_profile()
 
     with console.status(f"Registering stack '{stack_name}'...\n"):
@@ -356,3 +390,153 @@ def down_stack(force: bool = False) -> None:
             f"Suspending resources for active stack '{stack_.name}'."
         )
         stack_.suspend()
+
+
+def fetch_component_dict(component_flavor: StackComponentFlavor, component_name: str) -> Dict[str, str]:
+    """"""
+    fetched_component = Directory().get_stack_component(
+        component_flavor,
+        name=component_name,
+    )
+    component_dict = json.loads(fetched_component.json())
+    tmp = {
+        key: value
+        for key, value in component_dict.items()
+        if key != "uuid" and value is not None
+    }
+    tmp["flavor"] = fetched_component.FLAVOR
+    return tmp
+
+
+@stack.command("export")
+@click.argument("stack_name", type=str, required=True)
+@click.argument(
+    "filepath",
+    type=str,
+    required=False,
+)
+def export_stack(stack_name: Optional[str], filepath: Optional[str]) -> None:
+    """Export a stack to a YAML config."""
+
+    # TODO: Dupliate of describe()
+    dir_ = Directory()
+    stack_configurations = dir_.stack_configurations
+    if len(stack_configurations) == 0:
+        cli_utils.error("No stacks registered at all! :((")
+
+    try:
+        stack_configuration = stack_configurations[stack_name]
+    except KeyError:
+        cli_utils.error(f"Stack '{stack_name}' does not exist.")
+
+    # Create dict on stack configuration
+    component_data = {}
+    for component_type, component_name in stack_configuration.items():
+        component_dict = fetch_component_dict(component_type, component_name)
+        component_data[str(component_type)] = component_dict
+
+    # Write out coalescence info as well to YAML
+    yaml_data = {
+        "coalescenceml_version": coalescenceml.__version__,
+        "stack_name": stack_name,
+        "components": component_data,
+    }
+
+    filepath = filepath or f"{stack_name}-config.yaml"
+    yaml_utils.write_yaml(filepath, yaml_data)
+    cli_utils.info(f"Exported stack '{stack_name}' to file '{filepath}'")
+
+
+def import_component_helper(
+    component_flavor: StackComponentFlavor, component_config: Dict[str, str],
+) -> str:
+    """ Return the name of a component if it exists """
+    component_type = StackComponentFlavor(component_flavor)
+    component_name = component_config.pop("name")
+    component_flavor = component_config.pop("flavor")
+
+    while True:
+        # Check if component exists
+        try:
+            fetched_component_dict = fetch_component_dict(
+                component_type,
+                component_name,
+            )
+
+        except KeyError:
+            # Component doesn't exist so it can be made
+            break
+
+        # Check if attributes are the same.
+        found_component = True
+        for key, value in component_config.items():
+            if key not in fetched_component_dict or fetched_component_dict[key] != value:
+                found_component = False
+                break
+
+        # Found existing component so return that
+        if found_component:
+            return component_name
+
+        # Component exists so must be renamed
+        display_name = component_display_name_helper(
+            component_type
+        )
+        component_name = click.prompt(
+            f"A '{display_name}' component with the name '{component_name}' "
+            f"already exists but has a different configuration. Please "
+            f"choose a different name",
+            type=str,
+        )
+
+    register_stack_component_helper(
+        component_type=component_type,
+        component_name=component_name,
+        component_flavor=component_flavor,
+        **component_config
+    )
+
+    return component_name
+
+
+@stack.command("import")
+@click.argument("filepath", type=str, required=True)
+def import_stack(filepath: str) -> None:
+    """Import stack from YAML."""
+    yaml_data = yaml_utils.read_yaml(filepath)
+    stack_name = yaml_data["stack_name"]
+
+    # Check COML version
+    if yaml_data["coalescenceml_version"] != coalescenceml.__version__:
+        cli_utils.error(
+            f"Cannot import stacks from other CoalescenceML versions. "
+            f"This stack was created using version {yaml_data['coalescenceml_version']} "
+            f"while the current version of CoalescenceML is {coalescenceml.__version__}."
+        )
+        return
+
+    dir_ = Directory()
+    registered_stacks = {
+        stack_.name
+        for stack_ in dir_.stacks
+    }
+    while stack_name in registered_stacks:
+        stack_name = click.prompt(
+            f"Stack `{stack_name}` already exists. "
+            f"Please choose a different name.",
+            type=str,
+        )
+
+    # TODO: Check if any of these components are registered. If so, then
+    # Skip the check. However if they have the same name but different config
+    # then we should raise a helpful error message.
+    # register components and stack
+    component_data = {}
+    for component_type, component_config in yaml_data["components"].items():
+        component_dict = import_component_helper(
+            component_type,
+            component_config,
+        )
+        component_data[component_type + "_name"] = component_dict
+
+    register_stack_helper(stack_name=stack_name, **component_data)

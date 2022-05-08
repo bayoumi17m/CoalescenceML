@@ -722,6 +722,7 @@ class Directory(BaseConfiguration, metaclass=DirectoryMetaClass):
         Args:
             stack: The stack to register.
         """
+        stack.validate()
         metadata = self.stack_store.register_stack(
             StackWrapper.from_stack(stack)
         )

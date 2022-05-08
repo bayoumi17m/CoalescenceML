@@ -5,6 +5,8 @@ learning libraries like PyTorch.
 """
 # Imports here when we have them lol
 from coalescenceml.integrations.mlflow import MLFlowIntegration
+from coalescenceml.integrations.azure_datalake import AzureIntegration
 from coalescenceml.integrations.sklearn import SKLearnIntegration
 from coalescenceml.integrations.statsmodels import StatsmodelsIntegration
 from coalescenceml.integrations.tensorflow import TFIntegration
+from coalescenceml.integrations.xgboost import XgboostIntegration

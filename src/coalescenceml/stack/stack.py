@@ -20,7 +20,7 @@ from coalescenceml.constants import RUN_NAME_OPTION_KEY
 from coalescenceml.enums import StackComponentFlavor
 from coalescenceml.io import utils
 from coalescenceml.logger import get_logger
-from coalescenceml.stack.exceptions import ProvisioningError
+from coalescenceml.stack.exceptions import ProvisioningError, StackValidationError
 from coalescenceml.utils import readability_utils
 
 
@@ -431,6 +431,17 @@ class Stack:
         Returns:
             The return value of the call to `orchestrator.run_pipeline(...)`.
         """
+        self.validate()
+
+        for component in self.components.values():
+            if not component.is_running:
+                raise StackValidationError(
+                    f"The '{component.name}' {component.TYPE} stack component "
+                    f"is not currently running. Please run the following to "
+                    f"provision and start the component:\n\n"
+                    f"    coml stack up\n"
+                )
+
         for component in self.components.values():
             component.prepare_pipeline_deployment(
                 pipeline=pipeline,
@@ -564,7 +575,7 @@ class Stack:
             "Suspending provisioned resources for stack '%s'.", self.name
         )
         for component in self.components.values():
-            if component.is_running:
+            if not component.is_suspended:
                 try:
                     component.suspend()
                     logger.info("Suspended resources for %s.", component)
