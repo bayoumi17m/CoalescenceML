@@ -16,3 +16,4 @@ STATSMODELS = "statsmodels" # Producers;
 TENSORFLOW = "tensorflow"  # Special train step; Producers
 WHYLOGS = "whylogs"  # Data / Model profiling
 VERTEX = "vertex"  # Orchestrator, Step controller
+XGBOOST = "xgboost" # producers

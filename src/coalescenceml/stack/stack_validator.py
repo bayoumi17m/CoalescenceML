@@ -1,4 +1,4 @@
-from typing import AbstractSet, Callable, Optional
+from typing import AbstractSet, Callable, Optional, Tuple
 
 from coalescenceml.enums import StackComponentFlavor
 from coalescenceml.logger import get_logger
@@ -22,7 +22,9 @@ class StackValidator:
     def __init__(
         self,
         required_components: Optional[AbstractSet[StackComponentFlavor]] = None,
-        custom_validation_function: Optional[Callable[[Stack], bool]] = None,
+        custom_validation_function: Optional[
+            Callable[[Stack], Tuple[bool, str]]
+        ] = None,
     ):
         """Initializes a `StackValidator` instance.
 
@@ -30,7 +32,7 @@ class StackValidator:
             required_components: Optional set of stack components that must
                 exist in the stack.
             custom_validation_function: Optional function that returns whether
-                a stack is valid.
+                a stack is valid and an err msg if the stack is invalid.
         """
         self._required_components = required_components or set()
         self._custom_validation_function = custom_validation_function
@@ -52,11 +54,10 @@ class StackValidator:
                 f"stack: {stack}"
             )
 
-        if (
-            self._custom_validation_function
-            and not self._custom_validation_function(stack)
-        ):
-            raise StackValidationError(
-                f"Custom validation function failed to validate "
-                f"stack: {stack}"
-            )
+        if (self._custom_validation_function):
+            valid_stack, err_msg = self._custom_validation_function(stack)
+            if not valid_stack:
+                raise StackValidationError(
+                    f"Custom validation function failed to validate "
+                    f"stack '{stack.name}': {err_msg}"
+                )
