@@ -58,6 +58,10 @@ class StackComponent(BaseModel, ABC):
         """Set of PyPI requirements for the component."""
         return set(get_requirements_for_module(self.__module__))
 
+    @property
+    def persistent_store(self) -> Optional[str]:
+        return None
+
     def prepare_pipeline_deployment(
         self,
         pipeline: BasePipeline,

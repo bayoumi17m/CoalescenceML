@@ -171,6 +171,7 @@ class KubeComponent:
         global_cfg_dir = get_global_config_directory()
         # TODO: Mount items which have local paths such as the local
         # artifact store and local metadata store.
+        has_local_pv = False
         for stack_comp in stack.components.values():
             if (
                 not isinstance(stack_comp, LocalArtifactStore) and 
@@ -183,6 +184,7 @@ class KubeComponent:
             else:
                 local_path = stack_comp.uri
 
+            has_local_pv = True
             host_path = k8s_client.V1HostPathVolumeSource(
                 path=local_path, type="Directory"
             )
@@ -211,6 +213,18 @@ class KubeComponent:
             },
             pvolumes=volumes,
         )
+
+        if has_local_pv:
+            self.container_op.container.security_context = (
+                k8s_client.V1SecurityContext(
+                    run_as_user=os.getuid(),
+                    run_as_group=os.getgid(),
+                )
+            )
+            logger.debug(
+                "Setting security context UID and GID to local user/group "
+                "in kubeflow pipelines container."
+            )
 
         logging.info('Adding upstream dependencies for component %s',
                      self.container_op.name)

@@ -362,6 +362,15 @@ class KubeflowOrchestrator(BaseOrchestrator):
                     kubernetes_context=kube_context,
                     local_path=artifact_store.path,
                 )
+
+
+            if not self.is_daemon_running:
+                k3d_deployment_utils.start_kfp_ui_daemon(
+                    pid_file_path=self.pid_file_path,
+                    log_file_path=self.log_file,
+                    port=self.kfp_ui_port,
+                    kubernetes_context=kubernetes_context,
+                )
         except Exception as e:
             logger.error(e)
             self.deprovision()
