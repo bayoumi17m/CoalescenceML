@@ -8,7 +8,7 @@ from rich.theme import Theme
 coml_custom_theme = Theme(
     {
         "info": "dim cyan",
-        "warning": "magenta",
+        "warning": "yellow",
         "danger": "bold red",
         "error": "red",
         "title": "bold cyan underline",

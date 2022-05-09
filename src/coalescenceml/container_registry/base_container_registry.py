@@ -38,4 +38,4 @@ class BaseContainerRegistry(StackComponent):
                 ""
             )
         
-        docker_utils.push_docker_image
+        docker_utils.push_docker_image(image_name)

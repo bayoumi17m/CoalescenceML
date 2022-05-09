@@ -94,6 +94,14 @@ def stack() -> None:
     type=str,
     required=False,
 )
+@click.option(
+    "-e",
+    "--experiment-tracker",
+    "experiment_tracker_name",
+    help="Name of the experiment tracker for this stack.",
+    type=str,
+    required=False,
+)
 def register_stack(
     stack_name: str,
     metadata_store_name: str,
@@ -104,6 +112,7 @@ def register_stack(
     step_operator_name: Optional[str] = None,
     feature_store_name: Optional[str] = None,
     model_deployer_name: Optional[str] = None,
+    experiment_tracker_name: Optional[str] = None,
 ) -> None:
     """Register a stack."""
     register_stack_helper(
@@ -184,6 +193,14 @@ def register_stack_helper(
             ] = dir_.get_stack_component(
                 StackComponentFlavor.MODEL_DEPLOYER,
                 name=model_deployer_name,
+            )
+
+        if experiment_tracker_name:
+            stack_components[
+                StackComponentFlavor.EXPERIMENT_TRACKER
+            ] = dir_.get_stack_component(
+                StackComponentFlavor.EXPERIMENT_TRACKER,
+                name=experiment_tracker_name,
             )
 
         stack_ = Stack.from_components(
