@@ -21,9 +21,11 @@ compatible.
 Note: This requires Kubeflow Pipelines SDK to be installed.
 """
 
+import os
 from typing import Dict, List, Set
 import json
 import re
+from pathlib import Path
 
 from absl import logging
 from coalescenceml.enums import StackComponentFlavor
@@ -128,10 +130,10 @@ class KubeComponent:
           metadata_ui_path: File location for metadata-ui-metadata.json file.
         """
 
-        vol_mount_dir = metadata_ui_path.split("/")[0]
+        vol_mount_dir = "/outputs/mlpipeline-ui-metadata.json" #metadata_ui_path.split("/")[0]
         volumes: Dict[str, k8s_client.V1Volume] = {
-            f"/{vol_mount_dir}": k8s_client.V1Volume(
-                name=f"{vol_mount_dir}", empty_dir=k8s_client.V1EmptyDirVolumeSource()
+            f"/outputs": k8s_client.V1Volume(
+                name=f"outputs", empty_dir=k8s_client.V1EmptyDirVolumeSource()
             ),
         }
 
@@ -174,15 +176,15 @@ class KubeComponent:
         has_local_pv = False
         for stack_comp in stack.components.values():
             if (
-                not isinstance(stack_comp, LocalArtifactStore) and 
-                not isinstance(stack_comp, SQLiteMetadataStore)
+                not isinstance(stack_comp, LocalArtifactStore)
+                and not isinstance(stack_comp, SQLiteMetadataStore)
             ):
                 continue
 
             if stack_comp.TYPE == StackComponentFlavor.ARTIFACT_STORE:
                 local_path = stack_comp.path
             else:
-                local_path = stack_comp.uri
+                local_path = str(Path(stack_comp.uri).parent)
 
             has_local_pv = True
             host_path = k8s_client.V1HostPathVolumeSource(

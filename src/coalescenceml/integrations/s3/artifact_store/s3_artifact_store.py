@@ -14,7 +14,7 @@ from typing import (
     Optional,
 )
 
-class AWSArtifactStore(BaseArtifactStore):
+class S3ArtifactStore(BaseArtifactStore):
     """ Artifact Store for AWS S3""" 
 
     # Class Configuration

@@ -85,8 +85,8 @@ def create_k3d_cluster(
             registry_config_path,
             "--volume",
             f"{global_config_dir_path}:{global_config_dir_path}",
-            "--agents",
-            "4",
+            #"--agents",
+            #"4",
         ]
     )
     logger.info("Finished K3D cluster creation.")

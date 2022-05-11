@@ -65,6 +65,7 @@ class KubeflowOrchestrator(BaseOrchestrator):
     kfp_ui_port: int = DEFAULT_KFP_UI_PORT
     synchronous: bool = False
     use_k3d: bool = False
+    custom_base_image: Optional[str] = None
 
     # Class Configuration
     FLAVOR: ClassVar[str] = "kubeflow"
@@ -82,12 +83,12 @@ class KubeflowOrchestrator(BaseOrchestrator):
             Values passed to the Pydantic constructor
         """
         if not values.get("kubernetes_context"):
-            # not likely, due to Pydantic validation, but mypy complains
-            assert "uuid" in values
             if values["use_k3d"]:
                 values["kubernetes_context"] = f"k3d-coml-kfp-{str(values['uuid'])[:10]}"
             else:
                 raise ValueError()
+
+        print(f"Kube context: {values['kubernetes_context']}")
 
         return values
 
@@ -122,6 +123,7 @@ class KubeflowOrchestrator(BaseOrchestrator):
             image_name=image_name,
             dockerignore_path=pipeline.dockerignore_file,
             requirements=requirements,
+            base_image=self.custom_base_image,
         )
 
         stack.container_registry.push_image(image_name)
@@ -357,6 +359,7 @@ class KubeflowOrchestrator(BaseOrchestrator):
             )
 
             artifact_store = Directory().active_stack.artifact_store
+            logger.info("At artifact store")
             if isinstance(artifact_store, LocalArtifactStore):
                 k3d_deployment_utils.add_hostpath_to_kubeflow_pipelines(
                     kubernetes_context=kube_context,
@@ -367,10 +370,12 @@ class KubeflowOrchestrator(BaseOrchestrator):
             if not self.is_daemon_running:
                 k3d_deployment_utils.start_kfp_ui_daemon(
                     pid_file_path=self.pid_file_path,
-                    log_file_path=self.log_file,
+                    log_file_path=self.log_file_path,
                     port=self.kfp_ui_port,
-                    kubernetes_context=kubernetes_context,
+                    kubernetes_context=kube_context,
                 )
+
+            print("All worked")
         except Exception as e:
             logger.error(e)
             self.deprovision()
@@ -385,8 +390,8 @@ class KubeflowOrchestrator(BaseOrchestrator):
                 cluster_name=self._k3d_cluster_name
             )
         
-        if fileio.exists(self.log_file):
-            fileio.remove(self.log_file)
+        if fileio.exists(self.log_file_path):
+            fileio.remove(self.log_file_path)
     
     def resume(self) -> None:
         if self.is_running:
@@ -412,7 +417,7 @@ class KubeflowOrchestrator(BaseOrchestrator):
         if not self.is_daemon_running:
             k3d_deployment_utils.start_kfp_ui_daemon(
                 pid_file_path=self.pid_file_path,
-                log_file_path=self.log_file,
+                log_file_path=self.log_file_path,
                 port=self.kfp_ui_port,
                 kubernetes_context=kube_context,
             )

@@ -18,7 +18,6 @@ import copy
 import importlib
 import json
 import logging
-from msilib.schema import Directory
 import os
 import sys
 import textwrap
@@ -27,11 +26,9 @@ from typing import cast, Dict, List, Mapping, MutableMapping, Optional, Sequence
 from tfx import types
 from tfx.dsl.compiler import constants
 from tfx.orchestration import metadata
-from tfx.orchestration.kubeflow.proto import kubeflow_pb2
 from tfx.orchestration.local import runner_utils
 from tfx.orchestration.portable import data_types
-from tfx.orchestration.portable import execution_publish_utils
-from tfx.orchestration.portable import kubernetes_executor_operator
+# from tfx.orchestration.portable import execution_publish_utils
 from tfx.orchestration.portable import launcher
 from tfx.orchestration.portable import runtime_parameter_utils
 from tfx.proto.orchestration import executable_spec_pb2
@@ -48,8 +45,9 @@ from google.protobuf import json_format
 from ml_metadata.proto import metadata_store_pb2
 
 import coalescenceml
-from coalescenceml.artifacts import BaseArtifact
+from coalescenceml.artifacts.base_artifact import BaseArtifact
 from coalescenceml.artifacts.type_registry import type_registry
+from coalescenceml.directory import Directory
 from coalescenceml.integrations.registry import integration_registry
 from coalescenceml.step import BaseStep
 from coalescenceml.step.utils import generate_component_class
@@ -82,74 +80,74 @@ def _register_execution(
         exec_properties=execution_properties_copy)
 
 
-def _get_config_value(config_value: kubeflow_pb2.ConfigValue) -> Optional[str]:
-    value_from = config_value.WhichOneof('value_from')
-
-    if value_from is None:
-        raise ValueError(
-            'No value set in config value: {}'.format(config_value))
-
-    if value_from == 'value':
-        return config_value.value
-
-    return os.getenv(config_value.environment_variable)
-
-
-def _get_metadata_connection_config(
-    kubeflow_metadata_config: kubeflow_pb2.KubeflowMetadataConfig
-) -> Union[metadata_store_pb2.ConnectionConfig,
-           metadata_store_pb2.MetadataStoreClientConfig]:
-    """Constructs a metadata connection config.
-    Args:
-      kubeflow_metadata_config: Configuration parameters to use for constructing a
-        valid metadata connection config in a Kubeflow cluster.
-    Returns:
-      A Union of metadata_store_pb2.ConnectionConfig and
-      metadata_store_pb2.MetadataStoreClientConfig object.
-    """
-    config_type = kubeflow_metadata_config.WhichOneof('connection_config')
-
-    if config_type is None:
-        logging.warning(
-            'Providing mysql configuration through KubeflowMetadataConfig will be '
-            'deprecated soon. Use one of KubeflowGrpcMetadataConfig or'
-            'KubeflowMySqlMetadataConfig instead')
-        connection_config = metadata_store_pb2.ConnectionConfig()
-        connection_config.mysql.host = _get_config_value(
-            kubeflow_metadata_config.mysql_db_service_host)
-        connection_config.mysql.port = int(
-            _get_config_value(kubeflow_metadata_config.mysql_db_service_port))
-        connection_config.mysql.database = _get_config_value(
-            kubeflow_metadata_config.mysql_db_name)
-        connection_config.mysql.user = _get_config_value(
-            kubeflow_metadata_config.mysql_db_user)
-        connection_config.mysql.password = _get_config_value(
-            kubeflow_metadata_config.mysql_db_password)
-        return connection_config
-
-    assert config_type == 'grpc_config', ('expected oneof grpc_config')
-
-    return _get_grpc_metadata_connection_config(
-        kubeflow_metadata_config.grpc_config)
-
-
-def _get_grpc_metadata_connection_config(
-    kubeflow_metadata_config: kubeflow_pb2.KubeflowGrpcMetadataConfig
-) -> metadata_store_pb2.MetadataStoreClientConfig:
-    """Constructs a metadata grpc connection config.
-    Args:
-      kubeflow_metadata_config: Configuration parameters to use for constructing a
-        valid metadata connection config in a Kubeflow cluster.
-    Returns:
-      A metadata_store_pb2.MetadataStoreClientConfig object.
-    """
-    connection_config = metadata_store_pb2.MetadataStoreClientConfig()
-    connection_config.host = _get_config_value(
-        kubeflow_metadata_config.grpc_service_host)
-    connection_config.port = int(
-        _get_config_value(kubeflow_metadata_config.grpc_service_port))
-
-    return connection_config
+# def _get_config_value(config_value: kubeflow_pb2.ConfigValue) -> Optional[str]:
+#     value_from = config_value.WhichOneof('value_from')
+# 
+#     if value_from is None:
+#         raise ValueError(
+#             'No value set in config value: {}'.format(config_value))
+# 
+#     if value_from == 'value':
+#         return config_value.value
+# 
+#     return os.getenv(config_value.environment_variable)
+# 
+# 
+# def _get_metadata_connection_config(
+#     kubeflow_metadata_config: kubeflow_pb2.KubeflowMetadataConfig
+# ) -> Union[metadata_store_pb2.ConnectionConfig,
+#            metadata_store_pb2.MetadataStoreClientConfig]:
+#     """Constructs a metadata connection config.
+#     Args:
+#       kubeflow_metadata_config: Configuration parameters to use for constructing a
+#         valid metadata connection config in a Kubeflow cluster.
+#     Returns:
+#       A Union of metadata_store_pb2.ConnectionConfig and
+#       metadata_store_pb2.MetadataStoreClientConfig object.
+#     """
+#     config_type = kubeflow_metadata_config.WhichOneof('connection_config')
+# 
+#     if config_type is None:
+#         logging.warning(
+#             'Providing mysql configuration through KubeflowMetadataConfig will be '
+#             'deprecated soon. Use one of KubeflowGrpcMetadataConfig or'
+#             'KubeflowMySqlMetadataConfig instead')
+#         connection_config = metadata_store_pb2.ConnectionConfig()
+#         connection_config.mysql.host = _get_config_value(
+#             kubeflow_metadata_config.mysql_db_service_host)
+#         connection_config.mysql.port = int(
+#             _get_config_value(kubeflow_metadata_config.mysql_db_service_port))
+#         connection_config.mysql.database = _get_config_value(
+#             kubeflow_metadata_config.mysql_db_name)
+#         connection_config.mysql.user = _get_config_value(
+#             kubeflow_metadata_config.mysql_db_user)
+#         connection_config.mysql.password = _get_config_value(
+#             kubeflow_metadata_config.mysql_db_password)
+#         return connection_config
+# 
+#     assert config_type == 'grpc_config', ('expected oneof grpc_config')
+# 
+#     return _get_grpc_metadata_connection_config(
+#         kubeflow_metadata_config.grpc_config)
+# 
+# 
+# def _get_grpc_metadata_connection_config(
+#     kubeflow_metadata_config: kubeflow_pb2.KubeflowGrpcMetadataConfig
+# ) -> metadata_store_pb2.MetadataStoreClientConfig:
+#     """Constructs a metadata grpc connection config.
+#     Args:
+#       kubeflow_metadata_config: Configuration parameters to use for constructing a
+#         valid metadata connection config in a Kubeflow cluster.
+#     Returns:
+#       A metadata_store_pb2.MetadataStoreClientConfig object.
+#     """
+#     connection_config = metadata_store_pb2.MetadataStoreClientConfig()
+#     connection_config.host = _get_config_value(
+#         kubeflow_metadata_config.grpc_service_host)
+#     connection_config.port = int(
+#         _get_config_value(kubeflow_metadata_config.grpc_service_port))
+# 
+#     return connection_config
 
 
 def _sanitize_underscore(name: str) -> Optional[str]:
@@ -429,12 +427,12 @@ def get_run_name() -> str:
     return kfp.Client().get_run(run_id).run.name
 
 
-def create_executer_class(
+def create_executor_class(
     step: BaseStep,
-    executer_class: str,
+    executor_class: str,
     input_artifact_type_mapping: Dict[str, str],
 ) -> None:
-    """Create an executer class for a step."""
+    """Create an executor class for a step."""
     producers = step.get_producers(ensure_complete=True)
 
     input_spec = {}
@@ -448,7 +446,7 @@ def create_executer_class(
 
     output_spec = {}
     for key, value in step.OUTPUT_SIGNATURE.items():
-        output_spec[key] = type_registry.get_artifact_type(value)
+        output_spec[key] = type_registry.get_artifact_type(value)[0]
 
     execution_params = {
         **step.PARAM_SPEC,
@@ -457,9 +455,12 @@ def create_executer_class(
 
     generate_component_class(
         step_name=step.name,
+        step_module=executor_class,
         input_spec=input_spec,
         output_spec=output_spec,
         execution_parameter_names=set(execution_params.keys()),
+        step_function=step.entrypoint,
+        producers=producers,
     )
 
 
@@ -489,7 +490,7 @@ def main(argv):
     parser.add_argument('--runtime_parameter', type=str, action='append')
 
     # TODO(b/196892362): Replace hooking with a more straightforward mechanism.
-    launcher._register_execution = _register_execution  # pylint: disable=protected-access
+    # launcher._register_execution = _register_execution  # pylint: disable=protected-access
 
     args = parser.parse_args(argv)
 
@@ -527,7 +528,7 @@ def main(argv):
     custom_driver_spec = runner_utils.extract_custom_driver_spec(
         deployment_config, node_id)
 
-    integration_regsitry.activate_integrations()
+    integration_registry.activate_integrations()
     metadata_store = Directory().active_stack.metadata_store
     metadata_connection = metadata.Metadata(
         metadata_store.get_tfx_metadata_config()
@@ -544,9 +545,9 @@ def main(argv):
     if hasattr(executor_spec, 'class_path'):
         executor_module = getattr(executor_spec, 'class_path').split('.')
         executor_class = ".".join(executor_module[:-1])
-        create_executer_class(
+        create_executor_class(
             step=step_instance,
-            executer_class=executor_class,
+            executor_class=executor_class,
             input_artifact_type_mapping=json.loads(
                 args.input_artifact_type_mapping),
         )
@@ -554,7 +555,7 @@ def main(argv):
         raise ValueError("Executor spec does not have class_path.")
 
     custom_executor_operators = {
-        executable_spec_pb2.PythonClassEcxecutableSpec: step_instance.executor_operator,
+        executable_spec_pb2.PythonClassExecutableSpec: step_instance.executor_operator,
     }
 
     component_launcher = launcher.Launcher(

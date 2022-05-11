@@ -52,7 +52,7 @@ def step(
                     PARAM_CUSTOM_STEP_OPERATOR: custom_step_operator,
                 },
                 OUTPUT_SPEC: output_spec,
-                "__model__": func.__module__,
+                "__module__": func.__module__,
             },
         )
 
