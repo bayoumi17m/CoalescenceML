@@ -125,6 +125,7 @@ def register_stack(
         step_operator_name=step_operator_name,
         feature_store_name=feature_store_name,
         model_deployer_name=model_deployer_name,
+        experiment_tracker_name=experiment_tracker_name,
     )
 
 
@@ -138,6 +139,7 @@ def register_stack_helper(
     step_operator_name: Optional[str] = None,
     feature_store_name: Optional[str] = None,
     model_deployer_name: Optional[str] = None,
+    experiment_tracker_name: Optional[str] = None,
 ) -> None:
     cli_utils.print_active_profile()
 
