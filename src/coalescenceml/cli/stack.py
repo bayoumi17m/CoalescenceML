@@ -56,7 +56,7 @@ def stack() -> None:
 )
 @click.option(
     "-c",
-    "--container_registry",
+    "--container-registry",
     "container_registry_name",
     help="Name of the container registry for this stack.",
     type=str,
@@ -64,7 +64,7 @@ def stack() -> None:
 )
 @click.option(
     "-x",
-    "--secrets_manager",
+    "--secrets-manager",
     "secrets_manager_name",
     help="Name of the secrets manager for this stack.",
     type=str,
@@ -72,7 +72,7 @@ def stack() -> None:
 )
 @click.option(
     "-s",
-    "--step_operator",
+    "--step-operator",
     "step_operator_name",
     help="Name of the step operator for this stack.",
     type=str,
@@ -80,7 +80,7 @@ def stack() -> None:
 )
 @click.option(
     "-f",
-    "--feature_store",
+    "--feature-store",
     "feature_store_name",
     help="Name of the feature store for this stack.",
     type=str,
@@ -88,7 +88,7 @@ def stack() -> None:
 )
 @click.option(
     "-d",
-    "--model_deployer",
+    "--model-deployer",
     "model_deployer_name",
     help="Name of the model deployer for this stack.",
     type=str,
