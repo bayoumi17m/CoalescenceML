@@ -49,6 +49,7 @@ from coalescenceml.artifacts.base_artifact import BaseArtifact
 from coalescenceml.artifacts.type_registry import type_registry
 from coalescenceml.directory import Directory
 from coalescenceml.integrations.registry import integration_registry
+from coalescenceml.orchestrator.utils import execute_step
 from coalescenceml.step import BaseStep
 from coalescenceml.step.utils import generate_component_class
 from coalescenceml.utils import source_utils
@@ -566,9 +567,10 @@ def main(argv):
         executor_spec=executor_spec,
         custom_driver_spec=custom_driver_spec,
         custom_executor_operators=custom_executor_operators)
-    logging.info('Component %s is running.', node_id)
-    execution_info = component_launcher.launch()
-    logging.info('Component %s is finished.', node_id)
+    Directory().active_stack.prepare_step_run()
+    execution_info = execute_step(component_launcher)
+    # execution_info = component_launcher.launch()
+    Directory().active_stack.cleanup_step_run()
 
     # Dump the UI metadata.
     if execution_info:
