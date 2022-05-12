@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import sys
 from coalescenceml.directory import Directory
 from coalescenceml.integrations.mlflow.exceptions import ConfigurationError
 from coalescenceml.integrations.mlflow.step.base_mlflow_deployer import (
@@ -18,8 +19,7 @@ class KubernetesDeployer(BaseMLflowDeployer):
 
     def config_deployment(self, deployment_name: str, registry_path: str) -> DeploymentYAMLConfig:
         """Configures the deployment.yaml and service.yaml files for deployment."""
-        yaml_config = DeploymentYAMLConfig(
-            deployment_name, registry_path)
+        yaml_config = DeploymentYAMLConfig(deployment_name, registry_path)
         yaml_config.create_deployment_yaml()
         yaml_config.create_service_yaml()
         return yaml_config
@@ -47,22 +47,19 @@ class KubernetesDeployer(BaseMLflowDeployer):
         container_registry = Directory(
             skip_directory_check=True).active_stack.container_registry
         if container_registry is None:
-            logger.warning(
+            logger.error(
                 "Container registry not configured. Local image "
                 f"{image_name} will be deployed. To configure, use:\n"
                 "\"coml container-registry register "
                 "<container registry name> --uri=<registry uri> --type="
                 "<registry type>\""
             )
-            image_path = image_name
-            local = True
+            sys.exit(1)
         else:
-            local = False
             registry_path = container_registry.uri
             image_path = os.path.join(registry_path, image_name)
         self.build_model_image(model_uri, image_path)
-        if not local:
-            self.push_image(image_path)
+        self.push_image(image_path)
         deployment_name = "mlflow-deployment"
         yaml_config = self.config_deployment(deployment_name, image_path)
         self.deploy()
