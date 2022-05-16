@@ -21,11 +21,14 @@ compatible.
 Note: This requires Kubeflow Pipelines SDK to be installed.
 """
 
-from msilib.schema import Directory
+import os
 from typing import Dict, List, Set
 import json
+import re
+from pathlib import Path
 
 from absl import logging
+from coalescenceml.enums import StackComponentFlavor
 from kfp import dsl
 from kubernetes import client as k8s_client
 from tfx.dsl.components.base import base_node as tfx_base_node
@@ -37,6 +40,8 @@ from tfx.proto.orchestration import pipeline_pb2
 
 from google.protobuf import json_format
 
+from coalescenceml.artifact_store import LocalArtifactStore
+from coalescenceml.metadata_store import SQLiteMetadataStore
 from coalescenceml.constants import ENV_COML_PREVENT_PIPELINE_EXECUTION
 from coalescenceml.directory import Directory
 from coalescenceml.logger import get_logger
@@ -125,10 +130,10 @@ class KubeComponent:
           metadata_ui_path: File location for metadata-ui-metadata.json file.
         """
 
-        vol_mount_dir = metadata_ui_path.split("/")[0]
+        vol_mount_dir = "/outputs/mlpipeline-ui-metadata.json" #metadata_ui_path.split("/")[0]
         volumes: Dict[str, k8s_client.V1Volume] = {
-            f"/{vol_mount_dir}": k8s_client.V1Volume(
-                name=f"{vol_mount_dir}", empty_dir=k8s_client.V1EmptyDirVolumeSource()
+            f"/outputs": k8s_client.V1Volume(
+                name=f"outputs", empty_dir=k8s_client.V1EmptyDirVolumeSource()
             ),
         }
 
@@ -168,6 +173,37 @@ class KubeComponent:
         global_cfg_dir = get_global_config_directory()
         # TODO: Mount items which have local paths such as the local
         # artifact store and local metadata store.
+        has_local_pv = False
+        for stack_comp in stack.components.values():
+            if (
+                not isinstance(stack_comp, LocalArtifactStore)
+                and not isinstance(stack_comp, SQLiteMetadataStore)
+            ):
+                continue
+
+            if stack_comp.TYPE == StackComponentFlavor.ARTIFACT_STORE:
+                local_path = stack_comp.path
+            else:
+                local_path = str(Path(stack_comp.uri).parent)
+
+            has_local_pv = True
+            host_path = k8s_client.V1HostPathVolumeSource(
+                path=local_path, type="Directory"
+            )
+            volume_name = f"{stack_comp.TYPE.value}-{stack_comp.name}"
+            volumes[local_path] = k8s_client.V1Volume(
+                name=re.sub(r"[^0-9a-zA-Z-]+", "-", volume_name)
+                .strip("-")
+                .lower(),
+                host_path=host_path,
+            )
+            logger.debug(
+                "Adding host path volume for %s %s (path: %s) "
+                "in kubeflow pipelines container.",
+                stack_comp.TYPE.value,
+                stack_comp.name,
+                local_path,
+            )
 
         self.container_op = dsl.ContainerOp(
             name=component.id,
@@ -177,8 +213,20 @@ class KubeComponent:
             output_artifact_paths={
                 'mlpipeline-ui-metadata': metadata_ui_path,
             },
-            pvolvumes=volumes,
+            pvolumes=volumes,
         )
+
+        if has_local_pv:
+            self.container_op.container.security_context = (
+                k8s_client.V1SecurityContext(
+                    run_as_user=os.getuid(),
+                    run_as_group=os.getgid(),
+                )
+            )
+            logger.debug(
+                "Setting security context UID and GID to local user/group "
+                "in kubeflow pipelines container."
+            )
 
         logging.info('Adding upstream dependencies for component %s',
                      self.container_op.name)

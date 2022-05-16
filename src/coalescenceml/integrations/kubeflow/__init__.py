@@ -18,11 +18,8 @@ class KubeflowIntegration(Integration):
         """
         Activate Kubeflow
         """
-        pass
+        from coalescenceml.integrations.kubeflow import orchestrator
+        from coalescenceml.integrations.kubeflow import metadata_store
 
 
-if not KubeflowIntegration().check_installation():
-    raise ImportError(
-        "Unable to find the required packages for Kubeflow on your system. "
-        "Please install the packages on your system and try again."
-    )
+KubeflowIntegration().check_installation()

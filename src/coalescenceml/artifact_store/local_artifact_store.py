@@ -28,7 +28,7 @@ class LocalArtifactStore(BaseArtifactStore):
 
     # Class Configuration
     FLAVOR: ClassVar[str] = "local"
-    SUPPORTED_SCHEMES: ClassVar[Set[str]] = {""}
+    SUPPORTED_SCHEMES: ClassVar[Set[str]] = {"", "file://"}
 
     @staticmethod
     def open(name: PathType, mode: str = "r") -> Any:

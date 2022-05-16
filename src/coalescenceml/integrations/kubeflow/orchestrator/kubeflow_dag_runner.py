@@ -15,24 +15,21 @@
 
 import collections
 import copy
-import os
+import json
 import sys
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type, cast, MutableMapping
-from absl import logging
-from numpy import isin
 
 from kfp import compiler
 from kfp import dsl
 from kfp import gcp
 from kubernetes import client as k8s_client
+
 from tfx import version
 from tfx.dsl.compiler import compiler as tfx_compiler
 from tfx.dsl.components.base import base_component as tfx_base_component
-from tfx.dsl.components.base import base_node
 from tfx.orchestration import data_types
 from tfx.orchestration import tfx_runner
 from tfx.orchestration.config import pipeline_config
-from coalescenceml.integrations.kubeflow.orchestrator import kube_component, utils
 # from tfx.orchestration.kubeflow.proto import kubeflow_pb2
 from tfx.orchestration.pipeline import Pipeline as TfxPipeline
 from tfx.orchestration.pipeline import ROOT_PARAMETER as TFX_PIPELINE_ROOT_PARAMETER
@@ -40,9 +37,12 @@ from tfx.orchestration.launcher import base_component_launcher
 from tfx.orchestration.launcher import in_process_component_launcher
 from tfx.orchestration.launcher import kubernetes_component_launcher
 from tfx.proto.orchestration import pipeline_pb2
-from tfx.proto.orchestration.pipeline_pb2 import Pb2Pipeline
-from tfx.utils import telemetry_utils
+from tfx.proto.orchestration.pipeline_pb2 import Pipeline as Pb2Pipeline
 
+from coalescenceml.enums import MetadataContextFlavor
+from coalescenceml.integrations.kubeflow.orchestrator import (
+    kube_component,
+)
 from coalescenceml.orchestrator import utils
 from coalescenceml.utils.source_utils import (
     get_module_source_from_module,
@@ -158,7 +158,6 @@ def get_default_pod_labels() -> Dict[str, str]:
     # https://github.com/kubeflow/pipelines/blob/0.1.32/sdk/python/kfp/compiler/_default_transformers.py
     result = {
         'add-pod-env': 'true',
-        telemetry_utils.LABEL_KFP_SDK_ENV: 'tfx'
     }
     return result
 
@@ -320,10 +319,36 @@ class KubeflowDagRunner(tfx_runner.TfxRunner):
         component_to_kfp_op = {}
         tfx_ir: Pb2Pipeline = self._generate_tfx_ir(tfx_pipeline)
 
+        for node in tfx_ir.nodes:
+            pipeline_node = node.pipeline_node
+            
+            utils.add_context_to_node(
+                pipeline_node,
+                type_=MetadataContextFlavor.STACK.value,
+                name=str(hash(json.dumps(stack.dict(), sort_keys=True))),
+                properties=stack.dict(),
+            )
+
+            # Add all pydantic objects from runtime_configuration to the
+            # context
+            utils.add_runtime_configuration_to_node(
+                pipeline_node, runtime_configuration
+            )
+
+            # Add pipeline requirements as a context
+            requirements = " ".join(sorted(pipeline.requirements))
+            utils.add_context_to_node(
+                pipeline_node,
+                type_=MetadataContextFlavor.PIPELINE_REQUIREMENTS.value,
+                name=str(hash(requirements)),
+                properties={"pipeline_requirements": requirements},
+            )
+
+
         # Assumption: There is a partial ordering of components in the list, i.e.,
         # if component A depends on component B and C, then A appears after B and C
         # in the list.
-        for component in pipeline.components:
+        for component in tfx_pipeline.components:
             # Keep track of the set of upstream dsl.ContainerOps for this component.
             depends_on = set()
 
@@ -360,7 +385,8 @@ class KubeflowDagRunner(tfx_runner.TfxRunner):
                 # tfx_ir=tfx_node_ir,
                 metadata_ui_path=self._config.metadata_ui_path,
                 runtime_parameters=(self._params_by_component_id[component.id] +
-                                    [TFX_PIPELINE_ROOT_PARAMETER]))
+                                    [TFX_PIPELINE_ROOT_PARAMETER])
+                )
 
             for operator in self._config.pipeline_operator_funcs:
                 kfp_component.container_op.apply(operator)
@@ -408,7 +434,7 @@ class KubeflowDagRunner(tfx_runner.TfxRunner):
             pipeline.
         """
         tfx_pipeline = utils.create_tfx_pipeline(
-            pipeline, stack, runtime_configuration
+            pipeline, stack,
         )
 
         pipeline_root = tfx_pipeline.pipeline_info.pipeline_root
@@ -423,11 +449,11 @@ class KubeflowDagRunner(tfx_runner.TfxRunner):
                 component._resolve_pip_dependencies(  # pylint: disable=protected-access
                     pipeline_root)
 
-        # # KFP DSL representation of pipeline root parameter.
-        # dsl_pipeline_root = dsl.PipelineParam(
-        #     name=tfx_pipeline.ROOT_PARAMETER.name,
-        #     value=pipeline.pipeline_info.pipeline_root)
-        # self._params.append(dsl_pipeline_root)
+        # KFP DSL representation of pipeline root parameter.
+        dsl_pipeline_root = dsl.PipelineParam(
+            name='pipeline-root',
+            value=pipeline_root)
+        self._params.append(dsl_pipeline_root)
 
         def _construct_pipeline():
             """Constructs a Kubeflow pipeline.
@@ -453,4 +479,5 @@ class KubeflowDagRunner(tfx_runner.TfxRunner):
             pipeline_func=_construct_pipeline,
             pipeline_name=tfx_pipeline.pipeline_info.pipeline_name,
             params_list=self._params,
-            package_path=self._output_path)
+            package_path=self._output_path
+        )

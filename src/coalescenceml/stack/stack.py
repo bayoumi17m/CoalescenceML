@@ -20,17 +20,16 @@ from coalescenceml.constants import RUN_NAME_OPTION_KEY
 from coalescenceml.enums import StackComponentFlavor
 from coalescenceml.io import utils
 from coalescenceml.logger import get_logger
-from coalescenceml.stack.exceptions import ProvisioningError
+from coalescenceml.stack.exceptions import ProvisioningError, StackValidationError
 from coalescenceml.utils import readability_utils
 
 
 if TYPE_CHECKING:
     from coalescenceml.artifact_store import BaseArtifactStore
     from coalescenceml.container_registry import BaseContainerRegistry
-
+    from coalescenceml.experiment_tracker import BaseExperimentTracker
     # from coalescenceml.feature_store import BaseFeatureStore
     from coalescenceml.metadata_store import BaseMetadataStore
-
     # from coalescenceml.model_deployer import BaseModelDeployer
     from coalescenceml.orchestrator import BaseOrchestrator
     from coalescenceml.pipeline import BasePipeline
@@ -67,6 +66,7 @@ class Stack:
         step_operator: Optional[BaseStepOperator] = None,
         # feature_store: Optional["BaseFeatureStore"] = None,
         # model_deployer: Optional["BaseModelDeployer"] = None,
+        experiment_tracker: Optional[BaseExperimentTracker] = None,
     ):
         """Initialize and validate a stack instance.
 
@@ -77,6 +77,7 @@ class Stack:
             artifact_store: Artifact store instance to be used in stack
             container_registry: Container registry instance to be used in stack
             step_operator: Step operator instance to be used in stack
+            experiment_tracker: Experiment tracker instance to be used
         """
         self._name = name
         self._orchestrator = orchestrator
@@ -87,6 +88,7 @@ class Stack:
         self._secrets_manager = None  # secrets_manager
         self._feature_store = None  # feature_store
         self._model_deployer = None  # model_deployer
+        self._experiment_tracker = experiment_tracker
 
         self.validate()
 
@@ -105,13 +107,11 @@ class Stack:
         """
         from coalescenceml.artifact_store import BaseArtifactStore
         from coalescenceml.container_registry import BaseContainerRegistry
-
+        from coalescenceml.experiment_tracker import BaseExperimentTracker
         # from coalescenceml.feature_store import BaseFeatureStore
         from coalescenceml.metadata_store import BaseMetadataStore
-
         # from coalescenceml.model_deployer import BaseModelDeployer
         from coalescenceml.orchestrator import BaseOrchestrator
-
         # from coalescenceml.secrets_manager import BaseSecretsManager
         from coalescenceml.step_operator import BaseStepOperator
 
@@ -153,6 +153,14 @@ class Stack:
         ):
             _raise_type_error(container_registry, BaseContainerRegistry)
 
+        experiment_tracker = components.get(
+            StackComponentFlavor.EXPERIMENT_TRACKER
+        )
+        if experiment_tracker is not None and not isinstance(
+            experiment_tracker, BaseExperimentTracker
+        ):
+            _raise_type_error(experiment_tracker, BaseExperimentTracker)
+
         # secrets_manager = components.get(
         #     StackComponentFlavor.SECRETS_MANAGER
         # )
@@ -189,6 +197,7 @@ class Stack:
             step_operator=step_operator,
             # feature_store=feature_store,
             # model_deployer=model_deployer,
+            experiment_tracker=experiment_tracker,
         )
 
     @classmethod
@@ -247,6 +256,7 @@ class Stack:
                 self._step_operator,
                 self._feature_store,
                 self._model_deployer,
+                self._experiment_tracker,
             ]
             if component is not None
         }
@@ -319,6 +329,15 @@ class Stack:
     # def model_deployer(self) -> Optional["BaseModelDeployer"]:
     #     """The model deployer of the stack."""
     #     return self._model_deployer
+
+    @property
+    def experiment_tracker(self) -> Optional[BaseExperimentTracker]:
+        """Fetch experiment tracker of the stack.
+
+        Returns:
+            experiment tracker within the stack
+        """
+        return self._experiment_tracker
 
     @property
     def runtime_options(self) -> Dict[str, Any]:
@@ -412,6 +431,17 @@ class Stack:
         Returns:
             The return value of the call to `orchestrator.run_pipeline(...)`.
         """
+        self.validate()
+
+        for component in self.components.values():
+            if not component.is_running:
+                raise StackValidationError(
+                    f"The '{component.name}' {component.TYPE} stack component "
+                    f"is not currently running. Please run the following to "
+                    f"provision and start the component:\n\n"
+                    f"    coml stack up\n"
+                )
+
         for component in self.components.values():
             component.prepare_pipeline_deployment(
                 pipeline=pipeline,
@@ -466,6 +496,16 @@ class Stack:
             component.cleanup_pipeline_run()
 
         return return_value
+
+    def prepare_step_run(self) -> None:
+        """Prepare running a step."""
+        for component in self.components.values():
+            component.prepare_step_run()
+
+    def cleanup_step_run(self) -> None:
+        """Cleanup resources after step is run."""
+        for component in self.components.values():
+            component.cleanup_step_run()
 
     @property
     def is_provisioned(self) -> bool:
@@ -535,7 +575,7 @@ class Stack:
             "Suspending provisioned resources for stack '%s'.", self.name
         )
         for component in self.components.values():
-            if component.is_running:
+            if not component.is_suspended:
                 try:
                     component.suspend()
                     logger.info("Suspended resources for %s.", component)

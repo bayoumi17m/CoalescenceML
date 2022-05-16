@@ -9,6 +9,8 @@ class DictEnum(str, Enum):
     ..note: This is a subclass of str as well for nice properties with respect
         to logging.
     """
+    def __str__(self)->str:
+        return self.value
 
     @classmethod
     def names(cls) -> List[str]:
@@ -57,6 +59,7 @@ class StackComponentFlavor(DictEnum):
     ARTIFACT_STORE = "artifact_store"
     CONTAINER_REGISTRY = "container_registry"
     STEP_OPERATOR = "step_operator"  # TODO
+    EXPERIMENT_TRACKER = "experiment_tracker"
     #FEATURE_STORE = "feature_store"  # TODO
     #SECRETS_MANAGER = "secrets_manager"  # TODO
     #MODEL_DEPLOYER = "model_deployer"  # TODO

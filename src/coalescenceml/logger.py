@@ -19,8 +19,8 @@ class CustomFormatter(logging.Formatter):
     pink: str = "\x1b[35m"
     green: str = "\x1b[32m"
     blue: str = "\x1b[34m"
-    yellow: str = "\x1b[33;21m"
-    red: str = "\x1b[31;21m"
+    yellow: str = "\x1b[33m"
+    red: str = "\x1b[31m"
     bold_red: str = "\x1b[31;1m"
     purple: str = "\x1b[1;35m"
     reset: str = "\x1b[0m"
@@ -50,9 +50,9 @@ class CustomFormatter(logging.Formatter):
             A string formatted according to specifications.
         """
         log_fmt = (
-            self.COLORS[LoggingLevels[COML_LOGGING_VERBOSITY]] +
-            self.format_template +
-            self.reset
+            self.COLORS[LoggingLevels(log_record.levelno)]
+            + self.format_template
+            + self.reset
         )
 
         formatter = logging.Formatter(log_fmt)
